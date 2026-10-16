@@ -1,4 +1,4 @@
-/*! RareCharts v0.9.8_2 | Docs: https://raredigits.art/charts | Global: RareCharts; d3 and CSS are bundled in (no extra script/link). Usage: new RareCharts.<Type>(selector, options).setData(data) - the container element must already exist. Types: Line, TimeSeries, Overview, Bar, HierarchicalBar, DualAxes, Donut, Pie, Gauge, Graph, MultiChart, Map. Data shape is per-type (see docs); load or remap external data with RareCharts.fromJson|fromCsv|fromApi|fromArray. Text slots title/subtitle/legend/source/note are options - feed them, don't hardcode: https://raredigits.art/charts/settings/. Runtime version: RareCharts.VERSION */
+/*! RareCharts v0.9.8_3 | Docs: https://raredigits.art/charts | Global: RareCharts; d3 and CSS are bundled in (no extra script/link). Usage: new RareCharts.<Type>(selector, options).setData(data) - the container element must already exist. Types: Line, TimeSeries, Overview, Bar, HierarchicalBar, DualAxes, Donut, Pie, Gauge, Graph (views ego|path|cluster|flow), MultiChart, Map, Sankey. Relation charts (Graph, Sankey) share { nodes, links: [{ source, target, ... }] } (from/to accepted). Data shape is per-type (see docs); load or remap external data with RareCharts.fromJson|fromCsv|fromApi|fromArray. Text slots title/subtitle/legend/source/note are options - feed them, don't hardcode; put your own inputs inside the card with the controls option (element or selector), and use Graph's details option for a node/tie details panel: https://raredigits.art/charts/settings/. Runtime version: RareCharts.VERSION */
 var RareCharts = (() => {
   var __create = Object.create;
   var __defProp = Object.defineProperty;
@@ -3382,6 +3382,7 @@ var RareCharts = (() => {
     MultiChart: () => MultiChart,
     Overview: () => Overview,
     Pie: () => Donut,
+    Sankey: () => Sankey,
     TimeSeries: () => TimeSeries,
     VERSION: () => VERSION,
     createTheme: () => createTheme,
@@ -3399,717 +3400,11 @@ var RareCharts = (() => {
   });
 
   // assets/charts/rare-charts.css
-  var rare_charts_default = `@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Cousine:wght@400;700&display=swap');
-
-/* RareCharts \u2014 charts.css
-   Structure and positioning.
-   Colors \u2014 via theme (JS), not CSS. */
-
-/* \u2500\u2500\u2500 Chart wrapper \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-
-.rc-chart {
-  --rc-font-family: "Fira Sans", sans-serif;
-  --rc-font-family-numeric: "Cousine", monospace;
-  --rc-font-size: 16px;
-  --rc-font-size-sm: 14px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  /* Keep the chart card as the outer clipping boundary for tooltips/overlays.
-     In-chart labels that need to extend past the SVG box use svg{overflow:visible}. */
-  overflow: hidden;
-}
-
-.rc-chart > .rc-chart-header { order: 0; }
-.rc-graph-breadcrumbs        { order: 1; }
-.rc-graph-legend             { order: 2; }
-.rc-chart > svg              { order: 3; }
-.rc-chart > .rc-chart-navigator { order: 4; }
-.rc-chart > .rc-chart-footer { order: 5; }
-
-.rc-chart > svg {
-  font-family: var(--rc-font-family);
-  /* Small size is the chart-text default (axis ticks, labels, values). Charts
-     no longer set font-size inline; the few larger texts (donut/gauge center)
-     set their own. */
-  font-size: var(--rc-font-size-sm);
-  overflow: visible; /* otherwise end labels and crosshair dots are clipped */
-  /* Let the plot shrink inside the fixed-height card so a tall footer (a long
-     source line or a multi-sentence note) never overflows and gets clipped \u2014
-     without min-height:0 a flex item refuses to shrink below its content. */
-  min-height: 0;
-}
-
-.rc-chart-header,
-.rc-chart-subtitle,
-.rc-legend,
-.rc-chart-source {
-  color: var(--primary-color);
-}
-
-/* \u2500\u2500\u2500 Header \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-
-.rc-chart-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "title range"
-    "subtitle range"
-    "legend legend";
-  column-gap: var(--space-md);
-  row-gap: var(--space-xs);
-  position: relative;
-  user-select: none;
-}
-
-.rc-chart-title {
-  grid-area: title;
-  min-width: 0;
-  margin: 0;
-  font-family: var(--rc-font-family);
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rc-chart-subtitle {
-  grid-area: subtitle;
-  min-width: 0;
-  font-size: var(--rc-font-size-sm);
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* \u2500\u2500\u2500 Footer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-
-.rc-chart-footer {
-  user-select: none;
-}
-
-.rc-chart-source {
-  font-style: italic;
-  font-size: var(--rc-font-size-sm);
-  font-weight: initial;
-  margin: var(--space-sm) 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: left;
-}
-
-/* Links inside the source line \u2014 inherit the source text color, set apart by
-   the underline (so they adapt to light/dark theme automatically). */
-.rc-chart-source a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-/* Multi-part (array) source: let it wrap so several attributions/links all
-   stay visible instead of being cut off by the single-line ellipsis. */
-.rc-chart-source--rich {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-}
-
-/* Note \u2014 disclaimers, caveats, editorial context. Sits below the source.
-   Wraps freely (unlike source) since it can be a sentence or two; color is
-   set from theme.muted in JS so it reads as secondary to the source. */
-.rc-chart-note {
-  font-size: var(--rc-font-size-sm);
-  font-weight: initial;
-  line-height: 1.4;
-  margin: var(--space-xs) 0 var(--space-sm);
-  text-align: left;
-  /* Long words / URLs break instead of pushing the note past the card edge. */
-  overflow-wrap: anywhere;
-}
-
-.rc-chart-source + .rc-chart-note {
-  margin-top: 0;
-}
-
-.rc-chart-navigator {
-  width: 100%;
-}
-
-.rc-chart-range-row {
-  grid-area: range;
-  justify-self: end;
-  align-self: start;
-  min-width: max-content;
-  padding-right: 60px;
-}
-
-/* \u2500\u2500\u2500 Legend \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-
-.rc-legend {
-  grid-area: legend;
-  padding: var(--space-sm) 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-md);
-  font-size: var(--rc-font-size-sm);
-  user-select: none;
-}
-
-@media (max-width: 768px) {
-  .rc-chart-header {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "title"
-      "subtitle"
-      "range"
-      "legend";
-  }
-
-  .rc-chart-range-row {
-    justify-self: start;
-    min-width: 0;
-    padding-right: 0;
-  }
-}
-
-.rc-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  cursor: default;
-}
-
-/* Graph legend items are controls, not static labels. */
-.rc-graph-legend-item,
-.rc-graph-legend-reset {
-  appearance: none;
-  border: 0;
-  padding: 2px 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-}
-
-.rc-graph-legend-item:not(:disabled),
-.rc-graph-legend-reset {
-  cursor: pointer;
-}
-
-.rc-graph-legend-item:disabled { cursor: default; }
-
-.rc-graph-legend-item:focus-visible,
-.rc-graph-legend-reset:focus-visible,
-.rc-graph-breadcrumbs button:focus-visible,
-.rc-graph-overflow button:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-}
-
-.rc-graph-legend-reset {
-  text-decoration: underline;
-  opacity: 0.7;
-}
-
-.rc-graph-breadcrumbs {
-  display: block;
-  padding: 4px 0;
-  font-family: var(--rc-font-family);
-  font-size: 11px;
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rc-graph-breadcrumbs[hidden],
-.rc-graph-overflow[hidden] { display: none; }
-
-.rc-graph-breadcrumbs button {
-  appearance: none;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.rc-graph-breadcrumbs button:disabled {
-  cursor: default;
-  font-weight: 600;
-  opacity: 1;
-}
-
-.rc-graph-overflow {
-  position: absolute;
-  z-index: 4;
-  left: 104px;
-  bottom: 34px;
-  width: min(320px, calc(100% - 120px));
-  max-height: min(300px, 55%);
-  overflow: hidden;
-  padding: 12px;
-  border: 1px solid rgba(127, 127, 127, 0.35);
-  border-radius: 6px;
-  background: var(--background-color, #fff);
-  color: var(--primary-color, #111);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
-  font-family: var(--rc-font-family);
-  font-size: 12px;
-}
-
-.rc-graph-overflow-title {
-  padding-right: 28px;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.rc-graph-overflow-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: 240px;
-  overflow: auto;
-}
-
-.rc-graph-overflow-item {
-  appearance: none;
-  width: 100%;
-  border: 0;
-  border-radius: 3px;
-  padding: 6px 8px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.rc-graph-overflow-item:hover { background: rgba(127, 127, 127, 0.12); }
-
-.rc-graph-overflow-close {
-  position: absolute;
-  top: 6px;
-  right: 7px;
-  appearance: none;
-  border: 0;
-  padding: 2px 5px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-/* Line \u2014 for line series */
-.rc-legend-line {
-  width: 16px;
-  height: 2px;
-  display: inline-block;
-  border-radius: 1px;
-  flex-shrink: 0;
-}
-
-/* Dashed line \u2014 for forecast / projected series */
-.rc-legend-line--dashed {
-  background-color: transparent;
-}
-
-/* Dot \u2014 for bar / donut / scatter */
-.rc-legend-dot {
-  width: var(--space-sm);
-  height: var(--space-sm);
-  display: inline-block;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* Band \u2014 filled square for shaded ranges (confidence intervals, envelopes) */
-.rc-legend-band {
-  width: var(--space-sm);
-  height: var(--space-sm);
-  display: inline-block;
-  border-radius: 2px;
-  opacity: 0.85;
-  flex-shrink: 0;
-}
-
-/* \u2500\u2500\u2500 Tooltip \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-/* Only positioning and transition. */
-/* bg, border, shadow \u2014 Tooltip.js sets inline from theme.tooltip */
-
-.rc-tooltip {
-  position: absolute;
-  pointer-events: none;
-  padding: var(--space-sm) var(--space-md);
-  opacity: 0;
-  transition: opacity 0.1s;
-  white-space: nowrap;
-  z-index: 100;
-}
-
-.rc-tooltip.is-visible {
-  opacity: 0.9;
-}
-
-/* \u2500\u2500\u2500 SVG elements \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-
-/* Zero baseline \u2014 visible only when domain crosses zero */
-.rc-zero-line {
-  stroke-width: 1.5;
-  opacity: 0.9;
-}
-
-/* Band (confidence ribbon) \u2014 non-interactive fill behind lines */
-.rc-band {
-  pointer-events: none;
-}
-
-/* Axis tick labels. Charts add .rc-axis (numeric/value axis) or .rc-axis-cat
-   (category axis, inherits the regular font) to the axis group. font-size is
-   set here to override d3-axis's default font-size="10" attribute on the group. */
-.rc-axis text,
-.rc-axis-cat text {
-  /* Override d3-axis's font-size="10" / font-family="sans-serif" group attrs. */
-  font-size: var(--rc-font-size-sm, 14px);
-}
-
-.rc-axis text {
-  font-family: var(--rc-font-family-numeric, "Cousine", monospace);
-  font-variant-numeric: tabular-nums;
-}
-
-.rc-axis-cat text {
-  font-family: var(--rc-font-family, "Fira Sans", sans-serif);
-}
-
-/* Numeric SVG text set by charts (bar value labels, donut percents, center
-   totals). Regular-font text inherits the svg default, so only these need the
-   numeric family. Center texts keep their computed size (set in JS). */
-.rc-bar-value,
-.rc-donut-label-pct,
-.rc-donut-center-value,
-.rc-gauge-center-value {
-  font-family: var(--rc-font-family-numeric, "Cousine", monospace);
-  font-variant-numeric: tabular-nums;
-}
-
-.rc-donut-center-value,
-.rc-gauge-center-value {
-  font-weight: bold;
-}
-
-/* Graph (experimental) SVG labels. */
-.rc-graph-node-label { font-size: 11px; }
-
-.rc-graph-sector-label,
-.rc-graph-note,
-.rc-graph-row-label,
-.rc-graph-hidden-note {
-  font-size: 10px;
-}
-
-.rc-graph-sector-label { letter-spacing: 0.08em; text-transform: uppercase; }
-.rc-graph-row-label    { letter-spacing: 0.05em; }
-.rc-graph-note,
-.rc-graph-hidden-note  { text-decoration: underline; }
-
-/* Axis titles (used in DualAxes) */
-.rc-axis-title {
-  text-transform: uppercase;
-  dominant-baseline: hanging;
-}
-
-.rc-axis-title-y1 { text-anchor: start; }
-.rc-axis-title-y2 { text-anchor: end; }
-
-/* End labels \u2014 last-value labels on the right edge */
-.rc-end-label {
-  font-family: var(--rc-font-family-numeric, "Cousine", monospace);
-  font-variant-numeric: tabular-nums;
-  background-color: var(--white);
-  padding: var(--space-xs);
-}
-
-/* Hierarchical bar \u2014 row label + value text.
-   Fonts come from the theme CSS variables declared on .rc-chart, so the chart
-   code sets only data-driven attributes (fill, position), not font styles. */
-.rc-hbar-label {
-  font-family: var(--rc-font-family, "Fira Sans", sans-serif);
-  font-size: var(--rc-font-size-sm, 14px);
-}
-
-.rc-hbar-value {
-  font-family: var(--rc-font-family-numeric, "Cousine", monospace);
-  font-size: var(--rc-font-size-sm, 14px);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Markers */
-.rc-marker-circle,
-.rc-marker-shape {
-  stroke-width: 1.5;
-}
-
-/* Annotations \u2014 vertical (event markers) and horizontal (reference levels) */
-.rc-annotation-line,
-.rc-annotation-range-edge,
-.rc-annotation-h-line,
-.rc-annotation-h-range-edge {
-  stroke-width: 1;
-}
-
-.rc-annotation-label,
-.rc-annotation-h-label {
-  font-size: var(--rc-font-size-sm);
-  text-transform: uppercase;
-  pointer-events: none;
-}
-
-.rc-annotation-h-label {
-  dominant-baseline: text-after-edge;
-}
-
-/* \u2500\u2500\u2500 Legend aside (right column layout) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-/*
- * Without explicit grid-row, SVG lands in an auto-sized row (height: 0)
- * because the DOM order is: header \u2192 aside \u2192 footer \u2192 svg (aside is appended
- * before _initSVG runs). Explicit rows fix placement regardless of DOM order.
- */
-
-.rc-chart--legend-right {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto 1fr auto auto;  /* header | chart | navigator | footer */
-}
-
-/* Pin each element to its row \u2014 overrides DOM insertion order */
-.rc-chart--legend-right > .rc-chart-header { grid-column: 1; grid-row: 1; }
-.rc-chart--legend-right > svg              { grid-column: 1; grid-row: 2; }
-.rc-chart--legend-right > .rc-chart-navigator { grid-column: 1; grid-row: 3; }
-.rc-chart--legend-right > .rc-chart-footer { grid-column: 1; grid-row: 4; }
-
-/* Aside spans the full chart block in column 2 */
-.rc-chart--legend-right > .rc-chart-legend-aside {
-  grid-column: 2;
-  grid-row: 1 / 5;
-  display: flex;
-  align-items: center;
-  padding-left: var(--space-lg);
-}
-
-/* Stack legend items vertically when in aside */
-.rc-chart-legend-aside .rc-legend {
-  flex-direction: column;
-  gap: var(--space-sm);
-  padding: 0;
-}
-
-/* \u2500\u2500\u2500 MultiChart \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-
-.rc-multichart-grid {
-  display: grid;
-  gap: var(--space-lg, 16px);
-  order: 1;   /* sits between header (0) and footer (3) in the flex column */
-}
-
-.rc-multichart-cell {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;    /* prevent grid blowout */
-  overflow: hidden; /* prevent SVG content from bleeding into adjacent cells */
-}
-
-/* The inner div that receives the child Chart instance.
-   Height is set inline by the child chart constructor \u2014 do not override with flex.
-   overflow: visible lets X-axis tick labels render beyond the SVG boundary. */
-.rc-multichart-chart-wrapper {
-  min-width: 0;
-}
-
-.rc-multichart-chart-wrapper.rc-chart {
-  overflow: visible;
-}
-
-.rc-multichart-cell-title {
-  font-family: var(--rc-font-family);
-  font-size: var(--rc-font-size-sm);
-  font-weight: bold;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  user-select: none;
-  margin-bottom: 4px;
-}
-
-/* \u2500\u2500\u2500 Demo page controls \u2500\u2500\u2500\u2500\u2500\u2500 */
-
-.rc-demo-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-md);
-  margin: var(--space-lg) 0;
-}
-
-.rc-demo-group {
-  width: 48%;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border-color);
-  border-radius: var(--space-sm);
-  padding: var(--space-sm);
-}
-
-.rc-demo-group-label {
-  padding-left: var(--space-sm);
-  font-size: var(--rc-font-size-sm);
-  text-transform: uppercase;
-  user-select: none;
-}
-
-.rc-demo-btn-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.rc-demo-btn {
-  background: none;
-  border: 1px solid var(--border-color, #ccc);
-  font-family: var(--rc-font-family);
-  font-size: var(--rc-font-size-sm);
-  padding: 3px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  color: inherit;
-  transition: background 0.08s, border-color 0.08s, color 0.08s;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.rc-demo-btn:hover {
-  border-color: var(--text-color, #000);
-}
-
-.rc-demo-btn.is-active {
-  background: var(--text-color, #000);
-  border-color: var(--text-color, #000);
-  color: var(--bg-color, #fff);
-}
-
-@media  (max-width: 768px) {
-    .rc-demo-group {
-        width: 100%;
-    }
-}
-
-/* \u2500\u2500\u2500 Price Chart \u2500\u2500\u2500 */
-
-.price-chart-header {
-  width: calc(100% - 60px);
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-}
-
-.price-chart-ticker {
-  font-size: var(--font-size-xl);
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.price-chart-price {
-  font-size: var(--font-size-xl);
-  font-variant-numeric: tabular-nums;
-}
-
-.price-chart-change {
-  font-size: var(--font-size-md);
-  font-variant-numeric: tabular-nums;
-}
-
-.price-chart-change.up   { color: var(--positive-color, #389e0d); }
-.price-chart-change.down { color: var(--negative-color, #ff0000); }
-
-/* \u2500\u2500\u2500 Range bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-
-.price-chart-range-bar,
-.rc-chart-range-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  align-items: center;
-}
-
-.range-btn,
-.rc-range-btn {
-  background: none;
-  font-size: var(--rc-font-size-sm);
-  font-family: var(--rc-font-family);
-  border: 1px solid var(--border-color);
-  border-radius: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  cursor: pointer;
-  transition: background-color 0.1s, border-color 0.1s;
-  color: var(--text-color-light);
-}
-
-.range-btn:hover,
-.rc-range-btn:hover {
-  color: var(--primary-text-color);
-  border-color: var(--primary-color);
-}
-
-.range-btn.active,
-.rc-range-btn.active {
-  color: var(--primary-text-color);
-  background-color: var(--white);
-  border-color: var(--primary-color);
-}
-
-/* \u2500\u2500\u2500 Stats row \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-
-.price-chart-stats {
-  width: calc(100% - 56px);
-  margin-left: -8px;
-}
-
-.price-chart-stat {
-  padding: var(--space-xs) var(--space-md);
-  font-size: var(--rc-font-size-sm);
-}
-
-.price-chart-stat-label {
-  color: var(--muted-color, #666);
-}
-
-.price-chart-stat-value {
-  font-variant-numeric: tabular-nums;
-}
-
-/* \u2500\u2500\u2500 Reduced motion \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-   Honour \`prefers-reduced-motion: reduce\` for CSS transitions inside a chart.
-   Entry/update motion driven by D3 (JS) is gated separately via
-   motionDuration() in core/utils.js. */
-@media (prefers-reduced-motion: reduce) {
-  .rc-chart,
-  .rc-chart * {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-  }
-}
-`;
+  var rare_charts_default = '@import url(\'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Cousine:wght@400;700&display=swap\');\n\n/* RareCharts \u2014 charts.css\n   Structure and positioning.\n   Colors \u2014 via theme (JS), not CSS. */\n\n/* \u2500\u2500\u2500 Chart wrapper \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n\n.rc-chart {\n  --rc-font-family: "Fira Sans", sans-serif;\n  --rc-font-family-numeric: "Cousine", monospace;\n  --rc-font-size: 16px;\n  --rc-font-size-sm: 14px;\n  display: flex;\n  flex-direction: column;\n  position: relative;\n  /* Keep the chart card as the outer clipping boundary for tooltips/overlays.\n     In-chart labels that need to extend past the SVG box use svg{overflow:visible}. */\n  overflow: hidden;\n}\n\n.rc-chart > .rc-chart-header { order: 0; }\n.rc-graph-breadcrumbs        { order: 1; }\n.rc-graph-legend             { order: 2; }\n.rc-chart > svg              { order: 3; }\n.rc-chart > .rc-chart-navigator { order: 4; }\n.rc-chart > .rc-graph-details   { order: 4; }\n.rc-chart > .rc-chart-controls  { order: 5; }\n.rc-chart > .rc-chart-footer { order: 6; }\n\n.rc-chart > svg {\n  font-family: var(--rc-font-family);\n  /* Small size is the chart-text default (axis ticks, labels, values). Charts\n     no longer set font-size inline; the few larger texts (donut/gauge center)\n     set their own. */\n  font-size: var(--rc-font-size-sm);\n  overflow: visible; /* otherwise end labels and crosshair dots are clipped */\n  /* Let the plot shrink inside the fixed-height card so a tall footer (a long\n     source line or a multi-sentence note) never overflows and gets clipped \u2014\n     without min-height:0 a flex item refuses to shrink below its content. */\n  min-height: 0;\n}\n\n.rc-chart-header,\n.rc-chart-subtitle,\n.rc-legend,\n.rc-chart-source {\n  color: var(--primary-color);\n}\n\n/* \u2500\u2500\u2500 Header \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n\n.rc-chart-header {\n  display: grid;\n  grid-template-columns: minmax(0, 1fr) auto;\n  grid-template-areas:\n    "title range"\n    "subtitle range"\n    "legend legend";\n  column-gap: var(--space-md);\n  row-gap: var(--space-xs);\n  position: relative;\n  user-select: none;\n}\n\n.rc-chart-title {\n  grid-area: title;\n  min-width: 0;\n  margin: 0;\n  font-family: var(--rc-font-family);\n  text-transform: uppercase;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.rc-chart-subtitle {\n  grid-area: subtitle;\n  min-width: 0;\n  font-size: var(--rc-font-size-sm);\n  margin: 0;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n/* \u2500\u2500\u2500 Footer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n\n.rc-chart-footer {\n  user-select: none;\n}\n\n.rc-chart-source {\n  font-style: italic;\n  font-size: var(--rc-font-size-sm);\n  font-weight: initial;\n  margin: var(--space-sm) 0;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  text-align: left;\n}\n\n/* Links inside the source line \u2014 inherit the source text color, set apart by\n   the underline (so they adapt to light/dark theme automatically). */\n.rc-chart-source a {\n  color: inherit;\n  text-decoration: underline;\n  text-underline-offset: 2px;\n}\n\n/* Multi-part (array) source: let it wrap so several attributions/links all\n   stay visible instead of being cut off by the single-line ellipsis. */\n.rc-chart-source--rich {\n  white-space: normal;\n  overflow: visible;\n  text-overflow: clip;\n}\n\n/* Note \u2014 disclaimers, caveats, editorial context. Sits below the source.\n   Wraps freely (unlike source) since it can be a sentence or two; color is\n   set from theme.muted in JS so it reads as secondary to the source. */\n.rc-chart-note {\n  font-size: var(--rc-font-size-sm);\n  font-weight: initial;\n  line-height: 1.4;\n  margin: var(--space-xs) 0 var(--space-sm);\n  text-align: left;\n  /* Long words / URLs break instead of pushing the note past the card edge. */\n  overflow-wrap: anywhere;\n}\n\n.rc-chart-source + .rc-chart-note {\n  margin-top: 0;\n}\n\n.rc-chart-navigator {\n  width: 100%;\n}\n\n.rc-chart-range-row {\n  grid-area: range;\n  justify-self: end;\n  align-self: start;\n  min-width: max-content;\n  padding-right: 60px;\n}\n\n/* \u2500\u2500\u2500 Legend \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n\n.rc-legend {\n  grid-area: legend;\n  padding: var(--space-sm) 0;\n  display: flex;\n  flex-wrap: wrap;\n  /* wrapped lines sit close; items keep their horizontal spacing */\n  column-gap: var(--space-md);\n  row-gap: 2px;\n  line-height: 1.3;\n  font-size: var(--rc-font-size-sm);\n  user-select: none;\n}\n\n@media (max-width: 768px) {\n  .rc-chart-header {\n    grid-template-columns: minmax(0, 1fr);\n    grid-template-areas:\n      "title"\n      "subtitle"\n      "range"\n      "legend";\n  }\n\n  .rc-chart-range-row {\n    justify-self: start;\n    min-width: 0;\n    padding-right: 0;\n  }\n}\n\n.rc-legend-item {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  white-space: nowrap;\n  cursor: default;\n}\n\n/* Text-like chart controls: no button chrome in any state.\n   A host stylesheet may style every <button> \u2014 Rare Styles\' `button:hover`\n   adds a border and background, and its element+pseudo-class selector beats\n   a single class. Doubling the class (and listing the states) wins without\n   !important; only the cursor changes on hover. Keyboard focus keeps its\n   outline (rule below). */\n.rc-graph-legend-item.rc-graph-legend-item,\n.rc-graph-legend-reset.rc-graph-legend-reset,\n.rc-graph-breadcrumbs.rc-graph-breadcrumbs button,\n.rc-graph-tools .rc-graph-note.rc-graph-note,\n.rc-graph-tools .rc-graph-hidden-note.rc-graph-hidden-note {\n  border: 0;\n  border-radius: 0;\n  background: transparent;\n  box-shadow: none;\n}\n.rc-graph-legend-item.rc-graph-legend-item:hover,\n.rc-graph-legend-item.rc-graph-legend-item:active,\n.rc-graph-legend-reset.rc-graph-legend-reset:hover,\n.rc-graph-legend-reset.rc-graph-legend-reset:active,\n.rc-graph-breadcrumbs.rc-graph-breadcrumbs button:hover,\n.rc-graph-breadcrumbs.rc-graph-breadcrumbs button:active,\n.rc-graph-tools .rc-graph-note.rc-graph-note:hover,\n.rc-graph-tools .rc-graph-hidden-note.rc-graph-hidden-note:hover {\n  border: 0;\n  background: transparent;\n  box-shadow: none;\n}\n\n/* Graph legend items are controls, not static labels. */\n.rc-graph-legend-item,\n.rc-graph-legend-reset {\n  appearance: none;\n  border: 0;\n  padding: 2px 0;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n}\n\n.rc-graph-legend-item:not(:disabled),\n.rc-graph-legend-reset {\n  cursor: pointer;\n}\n\n.rc-graph-legend-item:disabled { cursor: default; }\n\n.rc-graph-legend-item:focus-visible,\n.rc-graph-legend-reset:focus-visible,\n.rc-graph-breadcrumbs button:focus-visible,\n.rc-graph-overflow button:focus-visible {\n  outline: 2px solid currentColor;\n  outline-offset: 2px;\n}\n\n.rc-graph-legend-reset {\n  text-decoration: underline;\n  opacity: 0.7;\n}\n\n.rc-graph-breadcrumbs {\n  display: block;\n  padding: 4px 0;\n  font-family: var(--rc-font-family);\n  font-size: 11px;\n  line-height: 1.4;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.rc-graph-breadcrumbs[hidden],\n.rc-graph-overflow[hidden] { display: none; }\n\n.rc-graph-breadcrumbs button {\n  /* inline: a site stylesheet may make every <button> a block (Rare Styles\n     does, Q-04) \u2014 the trail must stay on one line */\n  display: inline;\n  width: auto;\n  margin: 0;\n  appearance: none;\n  border: 0;\n  padding: 0;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  cursor: pointer;\n}\n\n.rc-graph-breadcrumbs button:disabled {\n  cursor: default;\n  font-weight: 600;\n  opacity: 1;\n}\n\n.rc-graph-overflow {\n  position: absolute;\n  z-index: 4;\n  right: 8px;\n  bottom: 40px;\n  width: min(320px, calc(100% - 120px));\n  max-height: min(300px, 55%);\n  overflow: hidden;\n  padding: 12px;\n  border: 1px solid rgba(127, 127, 127, 0.35);\n  border-radius: 6px;\n  background: var(--background-color, #fff);\n  color: var(--primary-color, #111);\n  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);\n  font-family: var(--rc-font-family);\n  font-size: 12px;\n}\n\n.rc-graph-overflow-title {\n  padding-right: 28px;\n  margin-bottom: 8px;\n  font-weight: 600;\n}\n\n.rc-graph-overflow-list {\n  display: flex;\n  flex-direction: column;\n  gap: 2px;\n  max-height: 240px;\n  overflow: auto;\n}\n\n.rc-graph-overflow-item {\n  appearance: none;\n  width: 100%;\n  border: 0;\n  border-radius: 3px;\n  padding: 6px 8px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  text-align: left;\n  cursor: pointer;\n}\n\n.rc-graph-overflow-item:hover { background: rgba(127, 127, 127, 0.12); }\n/* list rows keep their hover tint, but never a host button border */\n.rc-graph-overflow .rc-graph-overflow-item.rc-graph-overflow-item:hover,\n.rc-graph-overflow .rc-graph-overflow-close.rc-graph-overflow-close:hover { border: 0; box-shadow: none; }\n\n.rc-graph-overflow-close {\n  position: absolute;\n  top: 6px;\n  right: 7px;\n  appearance: none;\n  border: 0;\n  padding: 2px 5px;\n  background: transparent;\n  color: inherit;\n  font: inherit;\n  font-size: 18px;\n  cursor: pointer;\n}\n\n/* Line \u2014 for line series */\n.rc-legend-line {\n  width: 16px;\n  height: 2px;\n  display: inline-block;\n  border-radius: 1px;\n  flex-shrink: 0;\n}\n\n/* Dashed line \u2014 for forecast / projected series */\n.rc-legend-line--dashed {\n  background-color: transparent;\n}\n\n/* Dot \u2014 for bar / donut / scatter */\n.rc-legend-dot {\n  width: var(--space-sm);\n  height: var(--space-sm);\n  display: inline-block;\n  border-radius: 50%;\n  flex-shrink: 0;\n}\n\n/* Band \u2014 filled square for shaded ranges (confidence intervals, envelopes) */\n.rc-legend-band {\n  width: var(--space-sm);\n  height: var(--space-sm);\n  display: inline-block;\n  border-radius: 2px;\n  opacity: 0.85;\n  flex-shrink: 0;\n}\n\n/* \u2500\u2500\u2500 Tooltip \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n/* Only positioning and transition. */\n/* bg, border, shadow \u2014 Tooltip.js sets inline from theme.tooltip */\n\n.rc-tooltip {\n  position: absolute;\n  pointer-events: none;\n  padding: var(--space-sm) var(--space-md);\n  opacity: 0;\n  transition: opacity 0.1s;\n  white-space: nowrap;\n  z-index: 100;\n}\n\n.rc-tooltip.is-visible {\n  opacity: 0.9;\n}\n\n/* Pinned (opt-in, relation charts): stays put, takes pointer events so links\n   inside it work, wraps long content. Closes on outside click or Escape. */\n.rc-tooltip.is-pinned {\n  pointer-events: auto;\n  white-space: normal;\n  max-width: 320px;\n  opacity: 1;\n}\n\n.rc-tooltip.is-pinned a {\n  color: inherit;\n  text-decoration: underline;\n}\n\n/* \u2500\u2500\u2500 SVG elements \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n\n/* Zero baseline \u2014 visible only when domain crosses zero */\n.rc-zero-line {\n  stroke-width: 1.5;\n  opacity: 0.9;\n}\n\n/* Band (confidence ribbon) \u2014 non-interactive fill behind lines */\n.rc-band {\n  pointer-events: none;\n}\n\n/* Axis tick labels. Charts add .rc-axis (numeric/value axis) or .rc-axis-cat\n   (category axis, inherits the regular font) to the axis group. font-size is\n   set here to override d3-axis\'s default font-size="10" attribute on the group. */\n.rc-axis text,\n.rc-axis-cat text {\n  /* Override d3-axis\'s font-size="10" / font-family="sans-serif" group attrs. */\n  font-size: var(--rc-font-size-sm, 14px);\n}\n\n.rc-axis text {\n  font-family: var(--rc-font-family-numeric, "Cousine", monospace);\n  font-variant-numeric: tabular-nums;\n}\n\n.rc-axis-cat text {\n  font-family: var(--rc-font-family, "Fira Sans", sans-serif);\n}\n\n/* Numeric SVG text set by charts (bar value labels, donut percents, center\n   totals). Regular-font text inherits the svg default, so only these need the\n   numeric family. Center texts keep their computed size (set in JS). */\n.rc-bar-value,\n.rc-donut-label-pct,\n.rc-donut-center-value,\n.rc-gauge-center-value {\n  font-family: var(--rc-font-family-numeric, "Cousine", monospace);\n  font-variant-numeric: tabular-nums;\n}\n\n.rc-donut-center-value,\n.rc-gauge-center-value {\n  font-weight: bold;\n}\n\n/* Graph (experimental) SVG labels. */\n.rc-graph-node-label { font-size: 11px; }\n\n.rc-graph-sector-label,\n.rc-graph-note,\n.rc-graph-row-label,\n.rc-graph-hidden-note {\n  font-size: 10px;\n}\n\n.rc-graph-sector-label { letter-spacing: 0.08em; text-transform: uppercase; }\n.rc-graph-row-label    { letter-spacing: 0.05em; }\n.rc-graph-note,\n.rc-graph-hidden-note  { text-decoration: underline; }\n\n/* Axis titles (used in DualAxes) */\n.rc-axis-title {\n  text-transform: uppercase;\n  dominant-baseline: hanging;\n}\n\n.rc-axis-title-y1 { text-anchor: start; }\n.rc-axis-title-y2 { text-anchor: end; }\n\n/* End labels \u2014 last-value labels on the right edge */\n.rc-end-label {\n  font-family: var(--rc-font-family-numeric, "Cousine", monospace);\n  font-variant-numeric: tabular-nums;\n  background-color: var(--white);\n  padding: var(--space-xs);\n}\n\n/* Hierarchical bar \u2014 row label + value text.\n   Fonts come from the theme CSS variables declared on .rc-chart, so the chart\n   code sets only data-driven attributes (fill, position), not font styles. */\n.rc-hbar-label {\n  font-family: var(--rc-font-family, "Fira Sans", sans-serif);\n  font-size: var(--rc-font-size-sm, 14px);\n}\n\n.rc-hbar-value {\n  font-family: var(--rc-font-family-numeric, "Cousine", monospace);\n  font-size: var(--rc-font-size-sm, 14px);\n  font-variant-numeric: tabular-nums;\n}\n\n/* Markers */\n.rc-marker-circle,\n.rc-marker-shape {\n  stroke-width: 1.5;\n}\n\n/* Annotations \u2014 vertical (event markers) and horizontal (reference levels) */\n.rc-annotation-line,\n.rc-annotation-range-edge,\n.rc-annotation-h-line,\n.rc-annotation-h-range-edge {\n  stroke-width: 1;\n}\n\n.rc-annotation-label,\n.rc-annotation-h-label {\n  font-size: var(--rc-font-size-sm);\n  text-transform: uppercase;\n  pointer-events: none;\n}\n\n.rc-annotation-h-label {\n  dominant-baseline: text-after-edge;\n}\n\n/* \u2500\u2500\u2500 Legend aside (right column layout) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n/*\n * Without explicit grid-row, SVG lands in an auto-sized row (height: 0)\n * because the DOM order is: header \u2192 aside \u2192 footer \u2192 svg (aside is appended\n * before _initSVG runs). Explicit rows fix placement regardless of DOM order.\n */\n\n.rc-chart--legend-right {\n  display: grid;\n  grid-template-columns: 1fr auto;\n  grid-template-rows: auto 1fr auto auto;  /* header | chart | navigator | footer */\n}\n\n/* Pin each element to its row \u2014 overrides DOM insertion order */\n.rc-chart--legend-right > .rc-chart-header { grid-column: 1; grid-row: 1; }\n.rc-chart--legend-right > svg              { grid-column: 1; grid-row: 2; }\n.rc-chart--legend-right > .rc-chart-navigator { grid-column: 1; grid-row: 3; }\n.rc-chart--legend-right > .rc-chart-footer { grid-column: 1; grid-row: 4; }\n\n/* Aside spans the full chart block in column 2 */\n.rc-chart--legend-right > .rc-chart-legend-aside {\n  grid-column: 2;\n  grid-row: 1 / 5;\n  display: flex;\n  align-items: center;\n  padding-left: var(--space-lg);\n}\n\n/* Stack legend items vertically when in aside */\n.rc-chart-legend-aside .rc-legend {\n  flex-direction: column;\n  gap: var(--space-sm);\n  padding: 0;\n}\n\n/* \u2500\u2500\u2500 MultiChart \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n\n.rc-multichart-grid {\n  display: grid;\n  gap: var(--space-lg, 16px);\n  order: 1;   /* sits between header (0) and footer (3) in the flex column */\n}\n\n.rc-multichart-cell {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;    /* prevent grid blowout */\n  overflow: hidden; /* prevent SVG content from bleeding into adjacent cells */\n}\n\n/* The inner div that receives the child Chart instance.\n   Height is set inline by the child chart constructor \u2014 do not override with flex.\n   overflow: visible lets X-axis tick labels render beyond the SVG boundary. */\n.rc-multichart-chart-wrapper {\n  min-width: 0;\n}\n\n.rc-multichart-chart-wrapper.rc-chart {\n  overflow: visible;\n}\n\n.rc-multichart-cell-title {\n  font-family: var(--rc-font-family);\n  font-size: var(--rc-font-size-sm);\n  font-weight: bold;\n  text-transform: uppercase;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  user-select: none;\n  margin-bottom: 4px;\n}\n\n/* \u2500\u2500\u2500 Demo page controls \u2500\u2500\u2500\u2500\u2500\u2500 */\n\n.rc-demo-controls {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--space-md);\n  margin: var(--space-lg) 0;\n}\n\n.rc-demo-group {\n  width: 48%;\n  display: flex;\n  flex-direction: column;\n  border: 1px solid var(--border-color);\n  border-radius: var(--space-sm);\n  padding: var(--space-sm);\n}\n\n.rc-demo-group-label {\n  padding-left: var(--space-sm);\n  font-size: var(--rc-font-size-sm);\n  text-transform: uppercase;\n  user-select: none;\n}\n\n.rc-demo-btn-bar {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 4px;\n}\n\n.rc-demo-btn {\n  background: none;\n  border: 1px solid var(--border-color, #ccc);\n  font-family: var(--rc-font-family);\n  font-size: var(--rc-font-size-sm);\n  padding: 3px 10px;\n  border-radius: 3px;\n  cursor: pointer;\n  color: inherit;\n  transition: background 0.08s, border-color 0.08s, color 0.08s;\n  white-space: nowrap;\n  user-select: none;\n}\n\n.rc-demo-btn:hover {\n  border-color: var(--text-color, #000);\n}\n\n.rc-demo-btn.is-active {\n  background: var(--text-color, #000);\n  border-color: var(--text-color, #000);\n  color: var(--bg-color, #fff);\n}\n\n@media  (max-width: 768px) {\n    .rc-demo-group {\n        width: 100%;\n    }\n}\n\n/* \u2500\u2500\u2500 Price Chart \u2500\u2500\u2500 */\n\n.price-chart-header {\n  width: calc(100% - 60px);\n  display: flex;\n  justify-content: space-between;\n  align-items: baseline;\n  gap: var(--space-md);\n  flex-wrap: wrap;\n}\n\n.price-chart-ticker {\n  font-size: var(--font-size-xl);\n  font-weight: bold;\n  text-transform: uppercase;\n}\n\n.price-chart-price {\n  font-size: var(--font-size-xl);\n  font-variant-numeric: tabular-nums;\n}\n\n.price-chart-change {\n  font-size: var(--font-size-md);\n  font-variant-numeric: tabular-nums;\n}\n\n.price-chart-change.up   { color: var(--positive-color, #389e0d); }\n.price-chart-change.down { color: var(--negative-color, #ff0000); }\n\n/* \u2500\u2500\u2500 Range bar \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n\n.price-chart-range-bar,\n.rc-chart-range-bar {\n  display: flex;\n  flex-wrap: wrap;\n  gap: var(--space-xs);\n  align-items: center;\n}\n\n.range-btn,\n.rc-range-btn {\n  background: none;\n  font-size: var(--rc-font-size-sm);\n  font-family: var(--rc-font-family);\n  border: 1px solid var(--border-color);\n  border-radius: var(--space-xs);\n  padding: var(--space-sm) var(--space-md);\n  cursor: pointer;\n  transition: background-color 0.1s, border-color 0.1s;\n  color: var(--text-color-light);\n}\n\n.range-btn:hover,\n.rc-range-btn:hover {\n  color: var(--primary-text-color);\n  border-color: var(--primary-color);\n}\n\n.range-btn.active,\n.rc-range-btn.active {\n  color: var(--primary-text-color);\n  background-color: var(--white);\n  border-color: var(--primary-color);\n}\n\n/* \u2500\u2500\u2500 Stats row \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n\n.price-chart-stats {\n  width: calc(100% - 56px);\n  margin-left: -8px;\n}\n\n.price-chart-stat {\n  padding: var(--space-xs) var(--space-md);\n  font-size: var(--rc-font-size-sm);\n}\n\n.price-chart-stat-label {\n  color: var(--muted-color, #666);\n}\n\n.price-chart-stat-value {\n  font-variant-numeric: tabular-nums;\n}\n\n/* \u2500\u2500\u2500 Reduced motion \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n   Honour `prefers-reduced-motion: reduce` for CSS transitions inside a chart.\n   Entry/update motion driven by D3 (JS) is gated separately via\n   motionDuration() in core/utils.js. */\n@media (prefers-reduced-motion: reduce) {\n  .rc-chart,\n  .rc-chart * {\n    transition-duration: 0.01ms !important;\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n  }\n}\n\n/* \u2500\u2500\u2500 Screen-reader-only content (data-table fallbacks) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n.rc-sr-only {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0 0 0 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n/* \u2500\u2500\u2500 Sankey \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n.rc-sankey-label { font-size: 11px; }\n.rc-sankey-node:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }\n\n/* \u2500\u2500\u2500 Graph flow view \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n.rc-flow-lane-label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }\n.rc-flow-node-label { font-size: 12px; }\n.rc-flow-node-sub,\n.rc-flow-link-label { font-size: 11px; font-family: var(--font-mono, ui-monospace, monospace); }\n.rc-flow-hull-label { font-size: 11px; }\n/* Mouse clicks select (the ring shows it); the outline is for keyboard focus */\n.rc-flow-node:focus { outline: none; }\n.rc-flow-node:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }\n\n/* Footer row with tools (Graph zoom): source on the left, controls pinned\n   right, a note (if any) on its own line below. */\n.rc-chart-footer--tools {\n  display: grid;\n  grid-template-columns: minmax(0, 1fr) auto;\n  align-items: center;\n  column-gap: var(--space-sm, 8px);\n}\n.rc-chart-footer--tools > .rc-chart-note { grid-column: 1 / -1; }\n.rc-graph-tools {\n  grid-column: 2;\n  grid-row: 1;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  justify-self: end;\n}\n.rc-graph-zoom-controls { display: flex; gap: 4px; }\n.rc-graph-tools button { display: inline-block; margin: 0; width: auto; }\n.rc-graph-tools button[hidden] { display: none; }\n.rc-graph-tools .rc-graph-note,\n.rc-graph-tools .rc-graph-hidden-note {\n  appearance: none;\n  border: 0;\n  background: transparent;\n  padding: 0 4px;\n  color: inherit;\n  font: inherit;\n  font-size: 11px;\n  text-decoration: underline;\n  opacity: 0.75;\n  cursor: pointer;\n}\n/* Full screen: the card fills the screen (native API or overlay fallback). */\n.rc-graph--fullscreen {\n  position: fixed !important;\n  inset: 0;\n  z-index: 1000;\n  width: 100vw;\n  max-width: none;\n  margin: 0;\n  padding: 16px;\n  box-sizing: border-box;\n  background: var(--bg-color, #fff);\n}\n.rc-graph--fullscreen:fullscreen { position: static !important; }\n\n/* Controls slot (option `controls`): page controls inside the card, between\n   the drawing and the footer. Compact, wrapping, small type. */\n.rc-chart-controls {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  gap: 6px 16px;\n  padding: 8px 0 2px;\n  font-family: var(--rc-font-family);\n  font-size: var(--rc-font-size-sm, 12px);\n}\n.rc-chart-controls label {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  margin: 0;\n  cursor: pointer;\n}\n.rc-chart-controls input { margin: 0; }\n.rc-chart-controls label.is-disabled,\n.rc-chart-controls label:has(input:disabled) { opacity: 0.45; cursor: default; }\n.rc-chart-controls output { font-variant-numeric: tabular-nums; min-width: 7ch; }\n\n/* \u2500\u2500\u2500 Graph details panel (option `details`) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */\n.rc-graph-details {\n  box-sizing: border-box;\n  overflow: auto;\n  padding: 10px 14px;\n  font-family: var(--rc-font-family);\n  font-size: 13px;\n  line-height: 1.4;\n}\n/* Wide card: beside the drawing, aligned with it (top/height set by Graph). */\n.rc-graph--details-side > .rc-graph-details {\n  position: absolute;\n  right: 0;\n  border-left: 1px solid rgba(127, 127, 127, 0.25);\n}\n/* Narrow card: below the drawing; the card grows by the panel\'s height. */\n.rc-graph--details-below > .rc-graph-details {\n  flex: 0 0 auto;\n  border-top: 1px solid rgba(127, 127, 127, 0.25);\n}\n.rc-graph-details h4 { margin: 2px 0 6px; font-size: 15px; line-height: 1.25; text-transform: none; }\n.rc-graph-details p { margin: 0 0 6px; }\n.rc-graph-details .rc-graph-details-kind {\n  margin: 0;\n  font-size: 10px;\n  letter-spacing: 0.06em;\n  text-transform: uppercase;\n  opacity: 0.7;\n}\n.rc-graph-details .rc-graph-details-muted { opacity: 0.7; }\n.rc-graph-details dl {\n  display: grid;\n  grid-template-columns: max-content minmax(0, 1fr);\n  gap: 2px 10px;\n  margin: 0 0 6px;\n}\n.rc-graph-details dt { opacity: 0.7; font-size: inherit; font-weight: inherit; margin: 0; }\n.rc-graph-details dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }\n.rc-graph-details ul { margin: 0; padding-left: 1.1em; }\n.rc-graph-details li { margin: 0 0 2px; }\n.rc-graph-details a { color: inherit; text-decoration: underline; }\n\n';
 
   // assets/charts/src/version.json
   var version_default = {
-    version: "v0.9.8_2"
+    version: "v0.9.8_3"
   };
 
   // node_modules/d3/src/index.js
@@ -21662,6 +20957,7 @@ var RareCharts = (() => {
       this._onViewChangeCb = null;
       this._renderHeader();
       this._renderFooter();
+      this._renderControls();
       this._ensureNavigator();
       this._resizeObserver = new ResizeObserver(() => this._onResize());
       this._resizeObserver.observe(this.container);
@@ -21813,6 +21109,20 @@ var RareCharts = (() => {
      *                                    (e.g. "Source: NASDAQ, Bloomberg, Internal").
      * Links inherit the source text color and are distinguished by an underline.
      */
+    // ── Controls slot ────────────────────────────────────────────────────────
+    // Page-owned controls (filters, sliders, toggles) that drive the chart,
+    // shown inside the card between the drawing and the footer — so they read
+    // as part of the chart, not as stray markup above it. Pass an element or
+    // a selector; the element is moved in as is (its listeners keep working).
+    _renderControls() {
+      const c6 = this.options.controls;
+      if (!c6) return;
+      const el = typeof c6 === "string" ? document.querySelector(c6) : c6;
+      if (!(el instanceof HTMLElement)) return;
+      el.classList.add("rc-chart-controls");
+      this._controlsEl = el;
+      this.container.appendChild(el);
+    }
     _renderAttribution(el, value) {
       const appendPart = (part) => {
         if (part == null) return;
@@ -21981,6 +21291,8 @@ var RareCharts = (() => {
     constructor(container, theme) {
       this._container = container;
       this.theme = theme;
+      this._pinned = false;
+      this._onClose = null;
       const tt = theme.tooltip ?? {};
       this.el = document.createElement("div");
       this.el.className = "rc-tooltip";
@@ -21993,20 +21305,65 @@ var RareCharts = (() => {
         boxShadow: tt.shadow ?? "none"
       });
       container.appendChild(this.el);
+      this._onDocPointer = (event) => {
+        if (this._pinned && !this.el.contains(event.target)) this.unpin();
+      };
+      this._onDocKey = (event) => {
+        if (this._pinned && event.key === "Escape") this.unpin();
+      };
+    }
+    get isPinned() {
+      return this._pinned;
     }
     show(x4, y4, html2) {
+      if (this._pinned) return;
+      this._place(x4, y4, html2);
+    }
+    hide() {
+      if (this._pinned) return;
+      this.el.classList.remove("is-visible");
+    }
+    // Pin at (x, y). Re-pinning replaces the content in place. `onClose` runs
+    // once when the pin is released (outside click, Escape, or unpin()).
+    pin(x4, y4, html2, { onClose = null } = {}) {
+      const wasPinned = this._pinned;
+      if (wasPinned) this._releaseCallback();
+      this._pinned = true;
+      this._onClose = onClose;
+      this.el.classList.add("is-pinned");
+      this._place(x4, y4, html2);
+      if (!wasPinned) {
+        setTimeout(() => {
+          if (!this._pinned) return;
+          document.addEventListener("pointerdown", this._onDocPointer, true);
+          document.addEventListener("keydown", this._onDocKey);
+        }, 0);
+      }
+    }
+    unpin() {
+      if (!this._pinned) return;
+      this._pinned = false;
+      this.el.classList.remove("is-pinned", "is-visible");
+      document.removeEventListener("pointerdown", this._onDocPointer, true);
+      document.removeEventListener("keydown", this._onDocKey);
+      this._releaseCallback();
+    }
+    destroy() {
+      this.unpin();
+      this.el.remove();
+    }
+    _releaseCallback() {
+      const cb = this._onClose;
+      this._onClose = null;
+      if (cb) cb();
+    }
+    _place(x4, y4, html2) {
       this.el.innerHTML = html2;
       this.el.classList.add("is-visible");
       const maxX = this._container.clientWidth - this.el.offsetWidth - 12;
       const maxY2 = this._container.clientHeight - this.el.offsetHeight - 8;
       this.el.style.left = `${Math.min(x4 + 12, maxX)}px`;
       this.el.style.top = `${Math.min(Math.max(y4 - 20, 8), maxY2)}px`;
-    }
-    hide() {
-      this.el.classList.remove("is-visible");
-    }
-    destroy() {
-      this.el.remove();
     }
   };
 
@@ -22127,6 +21484,15 @@ var RareCharts = (() => {
   }
 
   // assets/charts/src/core/renderHelpers.js
+  function fitTextNode(node, full, avail) {
+    if (!node.getComputedTextLength) return;
+    let s2 = String(full);
+    node.textContent = s2;
+    while (s2.length > 1 && node.getComputedTextLength() > avail) {
+      s2 = s2.slice(0, -1).trimEnd();
+      node.textContent = s2 + "\u2026";
+    }
+  }
   function applySvgA11y(svg2, options = {}) {
     if (!svg2) return;
     const explicit = typeof options.ariaLabel === "string" ? options.ariaLabel.trim() : "";
@@ -23832,15 +23198,6 @@ var RareCharts = (() => {
   };
 
   // assets/charts/src/charts/Donut.js
-  function fitTextNode(node, full, avail) {
-    if (!node.getComputedTextLength) return;
-    let s2 = String(full);
-    node.textContent = s2;
-    while (s2.length > 1 && node.getComputedTextLength() > avail) {
-      s2 = s2.slice(0, -1).trimEnd();
-      node.textContent = s2 + "\u2026";
-    }
-  }
   var Donut = class extends Chart {
     constructor(selector, options = {}) {
       super(selector, {
@@ -24228,6 +23585,641 @@ var RareCharts = (() => {
           this.gCenter.append("text").attr("class", "rc-gauge-center-label").attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("y", needle ? 44 : 14).attr("fill", t.muted).text(centerLabel);
         }
       }
+    }
+  };
+
+  // assets/charts/src/core/links.js
+  function endpoints(raw) {
+    const source = raw.source ?? raw.from;
+    const target = raw.target ?? raw.to;
+    if (source == null || target == null) return null;
+    return { source: String(source), target: String(target) };
+  }
+  function normalizeLinks(list, { warn = true } = {}) {
+    if (!Array.isArray(list)) return [];
+    const seen = /* @__PURE__ */ new Map();
+    const out = [];
+    list.forEach((raw, i) => {
+      if (!raw || typeof raw !== "object") return;
+      const ends = endpoints(raw);
+      if (!ends) {
+        if (warn) console.warn(`RareCharts: link #${i} has no source/target \u2014 dropped`);
+        return;
+      }
+      const { from, to, ...rest } = raw;
+      const link3 = { ...rest, ...ends };
+      if (link3.id == null) {
+        const pair2 = `${ends.source}\u2192${ends.target}`;
+        const n = seen.get(pair2) ?? 0;
+        seen.set(pair2, n + 1);
+        link3.id = `${pair2}#${n}`;
+      } else {
+        link3.id = String(link3.id);
+      }
+      out.push(link3);
+    });
+    return out;
+  }
+  function normalizeLinkData(data = {}, opts) {
+    return {
+      ...data,
+      nodes: data.nodes ?? [],
+      links: normalizeLinks(data.links ?? data.flows ?? [], opts)
+    };
+  }
+  function parseTime(v2, { end = false } = {}) {
+    if (v2 == null || v2 === "") return null;
+    if (v2 instanceof Date) return Number.isNaN(+v2) ? null : +v2;
+    const period2 = (y4, m4 = null) => {
+      if (!end) return Date.UTC(y4, m4 ?? 0, 1);
+      return m4 == null ? Date.UTC(y4 + 1, 0, 1) - 1 : Date.UTC(y4, m4 + 1, 1) - 1;
+    };
+    if (typeof v2 === "number") {
+      if (!Number.isFinite(v2)) return null;
+      return Math.abs(v2) < 1e4 ? period2(Math.trunc(v2)) : v2;
+    }
+    const s2 = String(v2).trim();
+    let m3 = /^(-?\d{1,4})$/.exec(s2);
+    if (m3) return period2(+m3[1]);
+    m3 = /^(\d{4})-(\d{2})$/.exec(s2);
+    if (m3) return period2(+m3[1], +m3[2] - 1);
+    const t = Date.parse(s2);
+    return Number.isNaN(t) ? null : t;
+  }
+  function linkInWindow(link3, from, to) {
+    const ls = parseTime(link3.start);
+    const le = parseTime(link3.end, { end: true });
+    const ws = parseTime(from);
+    const we = parseTime(to, { end: true });
+    if (we != null && ls != null && ls > we) return false;
+    if (ws != null && le != null && le < ws) return false;
+    return true;
+  }
+  function applyTimeWindow(links, window2, mode2 = "hide") {
+    if (!window2 || window2.from == null && window2.to == null) return links;
+    if (mode2 === "dim") {
+      return links.map((l) => linkInWindow(l, window2.from, window2.to) ? l : { ...l, _dim: true });
+    }
+    return links.filter((l) => linkInWindow(l, window2.from, window2.to));
+  }
+  function linkWidthScale(links, {
+    by = "value",
+    scale: scale2 = "sqrt",
+    min: min4 = 1,
+    max: max5 = 12
+  } = {}) {
+    const val = (l) => {
+      const v2 = typeof by === "function" ? by(l) : l?.[by];
+      return Number.isFinite(+v2) && v2 !== null && v2 !== "" ? Math.max(0, +v2) : null;
+    };
+    const top2 = max(links ?? [], val) ?? 0;
+    const s2 = (scale2 === "linear" ? linear3() : sqrt2()).domain([0, top2 || 1]).range([min4, max5]).clamp(true);
+    return (l) => {
+      const v2 = val(l);
+      return v2 == null ? min4 : s2(v2);
+    };
+  }
+  var pairKey = (a4, b) => a4 < b ? `${a4}|${b}` : `${b}|${a4}`;
+  function dedupeUndirected(links) {
+    const seen = /* @__PURE__ */ new Set();
+    return links.filter((l) => {
+      const key = `${pairKey(l.source, l.target)}|${l.type ?? "default"}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+  function parallelIndex(links) {
+    const groups2 = /* @__PURE__ */ new Map();
+    links.forEach((l) => {
+      const k2 = pairKey(l.source, l.target);
+      if (!groups2.has(k2)) groups2.set(k2, []);
+      groups2.get(k2).push(l);
+    });
+    const out = /* @__PURE__ */ new Map();
+    groups2.forEach((group2) => {
+      group2.forEach((l, index3) => out.set(l.id, { index: index3, count: group2.length }));
+    });
+    return out;
+  }
+
+  // assets/charts/src/graph/views/flow.js
+  function layoutFlow({ nodes = [], lanes = [] } = {}, {
+    width = 900,
+    height = 600,
+    laneBy = "lane",
+    header = 34,
+    pad: pad3 = 24,
+    minGap = 56,
+    nodeRadius = 18,
+    captionRoom = 36,
+    // below a node's edge: label + sub line
+    padBottom = pad3
+    // extra room under the drawing (e.g. zoom controls)
+  } = {}) {
+    const laneOf = (n) => typeof laneBy === "function" ? laneBy(n) : n[laneBy];
+    const laneList = lanes.map((l) => ({ id: String(l.id), label: l.label ?? String(l.id), weight: l.weight ?? 1 }));
+    const known = new Set(laneList.map((l) => l.id));
+    nodes.forEach((n) => {
+      const id2 = laneOf(n) == null ? "" : String(laneOf(n));
+      if (!known.has(id2)) {
+        known.add(id2);
+        laneList.push({ id: id2, label: id2, weight: 1 });
+      }
+    });
+    const totalW = laneList.reduce((s2, l) => s2 + l.weight, 0) || 1;
+    let x4 = 0;
+    laneList.forEach((l) => {
+      l.x0 = x4;
+      l.x1 = x4 + l.weight / totalW * width;
+      x4 = l.x1;
+    });
+    const laneById = new Map(laneList.map((l) => [l.id, l]));
+    const top2 = header + pad3;
+    const usableH = Math.max(1, height - top2 - padBottom);
+    const colsPerLane = /* @__PURE__ */ new Map();
+    nodes.forEach((n) => {
+      const lane = String(laneOf(n) ?? "");
+      const c6 = Number.isInteger(n.col) && n.col >= 0 ? n.col : 0;
+      colsPerLane.set(lane, Math.max(colsPerLane.get(lane) ?? 1, c6 + 1));
+    });
+    const rowOf = /* @__PURE__ */ new Map();
+    const taken = /* @__PURE__ */ new Map();
+    const cellKey = (n) => `${laneOf(n) ?? ""}|${Number.isInteger(n.col) && n.col >= 0 ? n.col : 0}`;
+    nodes.forEach((n) => {
+      if (Number.isFinite(n.row)) {
+        rowOf.set(n.id, n.row);
+        const k2 = cellKey(n);
+        if (!taken.has(k2)) taken.set(k2, /* @__PURE__ */ new Set());
+        taken.get(k2).add(n.row);
+      }
+    });
+    const freeRows = function* () {
+      yield 0;
+      for (let i = 1; ; i++) {
+        yield i;
+        yield -i;
+      }
+    };
+    nodes.forEach((n) => {
+      if (rowOf.has(n.id)) return;
+      const k2 = cellKey(n);
+      if (!taken.has(k2)) taken.set(k2, /* @__PURE__ */ new Set());
+      const used = taken.get(k2);
+      for (const r of freeRows()) {
+        if (!used.has(r)) {
+          used.add(r);
+          rowOf.set(n.id, r);
+          break;
+        }
+      }
+    });
+    const rows = [...rowOf.values()];
+    const minRow = Math.min(0, ...rows), maxRow = Math.max(0, ...rows);
+    const span = maxRow - minRow;
+    const bandTop = top2 + nodeRadius;
+    const bandH = Math.max(1, usableH - nodeRadius * 2 - captionRoom);
+    const rowStep = span ? Math.min(120, bandH / span) : 0;
+    const bandOffset = span ? (bandH - rowStep * span) / 2 : bandH / 2;
+    const rowY = (r) => bandTop + bandOffset + (r - minRow) * rowStep;
+    const positions = /* @__PURE__ */ new Map();
+    nodes.forEach((n) => {
+      const lane = laneById.get(String(laneOf(n) ?? ""));
+      const cols = colsPerLane.get(lane.id) ?? 1;
+      const c6 = Number.isInteger(n.col) && n.col >= 0 ? n.col : 0;
+      const laneW = lane.x1 - lane.x0;
+      let px = lane.x0 + (c6 + 0.5) / cols * laneW;
+      let py = rowY(rowOf.get(n.id) ?? 0);
+      if (Number.isFinite(n.x)) px = lane.x0 + Math.min(1, Math.max(0, n.x)) * laneW;
+      if (Number.isFinite(n.y)) py = top2 + Math.min(1, Math.max(0, n.y)) * usableH;
+      positions.set(n.id, { x: px, y: py, lane: lane.id, col: c6, row: rowOf.get(n.id) ?? 0 });
+    });
+    const byLane = group(nodes, (n) => positions.get(n.id).lane);
+    byLane.forEach((list) => {
+      const pts = list.map((n) => positions.get(n.id)).sort((a4, b) => a4.x - b.x || a4.y - b.y);
+      for (let i = 1; i < pts.length; i++) {
+        for (let j = 0; j < i; j++) {
+          const a4 = pts[j], b = pts[i];
+          if (Math.abs(a4.x - b.x) < 1 && Math.abs(a4.y - b.y) < minGap) b.y = a4.y + minGap;
+        }
+      }
+    });
+    return { positions, lanes: laneList, top: top2, height, colsPerLane };
+  }
+  var SHAPES = ["circle", "square", "diamond", "stack"];
+  var esc = (v2) => String(v2).replace(/[&<>"']/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c6]);
+  var FlowView = class {
+    constructor(graph) {
+      this.g = graph;
+      this.data = { nodes: [], links: [] };
+      this.filter = null;
+      this.window = null;
+      this.hiddenTypes = new Set((graph.options.hiddenLinkTypes ?? []).map(String));
+      this.selected = null;
+      this.labels = graph.options.linkLabels !== false;
+      this.layer = graph.gZoom.append("g").attr("class", "rc-flow");
+      this.gLanes = this.layer.append("g").attr("class", "rc-flow-lanes");
+      this.gHulls = this.layer.append("g").attr("class", "rc-flow-hulls");
+      this.gLinks = this.layer.append("g").attr("class", "rc-flow-links");
+      this.gHits = this.layer.append("g").attr("class", "rc-flow-link-hits");
+      this.gNodes = this.layer.append("g").attr("class", "rc-flow-nodes");
+      this.gLinkLabels = this.layer.append("g").attr("class", "rc-flow-link-labels");
+    }
+    setData({ nodes, links }) {
+      this.data = { nodes, links };
+      if (this.selected && !this._exists(this.selected)) this.selected = null;
+    }
+    clear() {
+      [this.gLanes, this.gHulls, this.gLinks, this.gHits, this.gLinkLabels, this.gNodes].forEach((g) => g.selectAll("*").remove());
+    }
+    // ── Option helpers ──
+    _opt(name, fallback) {
+      return this.g.options[name] ?? fallback;
+    }
+    _laneOf(n) {
+      const by = this._opt("laneBy", "lane");
+      return typeof by === "function" ? by(n) : n[by];
+    }
+    _groupCfg(n) {
+      return this._opt("nodeGroups", {})[n.group] ?? null;
+    }
+    _nodeColor(n, palette) {
+      if (n.color) return n.color;
+      const cfg = this._groupCfg(n);
+      if (cfg?.color) return cfg.color;
+      const groups2 = Object.keys(this._opt("nodeGroups", {}));
+      const i = Math.max(0, groups2.indexOf(n.group));
+      return palette[i % palette.length];
+    }
+    _shape(n) {
+      const by = this._opt("shapeBy", "kind");
+      const key = typeof by === "function" ? by(n) : n[by];
+      const map4 = this._opt("nodeShapes", {});
+      const shape = map4[key] ?? key ?? "circle";
+      return shape;
+    }
+    _linkKey(l) {
+      const by = this._opt("linkColorBy", "type");
+      const v2 = typeof by === "function" ? by(l) : l[by];
+      return v2 == null ? "default" : String(v2);
+    }
+    _exists(sel) {
+      if (sel.node) return this.data.nodes.some((n) => n.id === sel.node);
+      return this.data.links.some((l) => l.id === sel.link);
+    }
+    // ── Visibility ──
+    _visible() {
+      const pass = (item) => !this.filter || this.filter(item);
+      let nodes = this.data.nodes.filter(pass);
+      let keep = new Set(nodes.map((n) => n.id));
+      const shown = this.data.links.filter((l) => pass(l) && keep.has(l.source) && keep.has(l.target));
+      let links = shown.filter((l) => !this.hiddenTypes.has(this._linkKey(l)));
+      if (this.hiddenTypes.size) {
+        const hasTie = /* @__PURE__ */ new Set(), hasVisible = /* @__PURE__ */ new Set();
+        shown.forEach((l) => {
+          hasTie.add(l.source);
+          hasTie.add(l.target);
+        });
+        links.forEach((l) => {
+          hasVisible.add(l.source);
+          hasVisible.add(l.target);
+        });
+        nodes = nodes.filter((n) => !hasTie.has(n.id) || hasVisible.has(n.id));
+        keep = new Set(nodes.map((n) => n.id));
+        links = links.filter((l) => keep.has(l.source) && keep.has(l.target));
+      }
+      links = applyTimeWindow(links, this.window, this._opt("timeWindowMode", "dim"));
+      return { nodes, links };
+    }
+    // ── Render ──
+    render(W, H) {
+      const graph = this.g;
+      const t = graph.theme;
+      const o = graph.options;
+      const palette = t.colors ?? ["#888"];
+      const R = o.nodeRadius ?? 18;
+      const { positions, lanes, top: top2, colsPerLane } = layoutFlow(
+        { nodes: this.data.nodes, lanes: o.lanes ?? [] },
+        { width: W, height: H, laneBy: o.laneBy ?? "lane", nodeRadius: R }
+      );
+      const { nodes, links } = this._visible();
+      const byId = new Map(nodes.map((n) => [n.id, n]));
+      const active = links.filter((l) => !l._dim);
+      const live = /* @__PURE__ */ new Set();
+      active.forEach((l) => {
+        live.add(l.source);
+        live.add(l.target);
+      });
+      const hasTies = /* @__PURE__ */ new Set();
+      links.forEach((l) => {
+        hasTies.add(l.source);
+        hasTies.add(l.target);
+      });
+      const nodeDim = (n) => hasTies.has(n.id) && !live.has(n.id);
+      this.gLanes.selectAll(".rc-flow-lane").data(lanes, (l) => l.id).join((enter) => {
+        const g = enter.append("g").attr("class", "rc-flow-lane");
+        g.append("rect");
+        g.append("text");
+        return g;
+      }).call((sel) => sel.select("rect").attr("x", (l) => l.x0 + 4).attr("y", 4).attr("width", (l) => Math.max(0, l.x1 - l.x0 - 8)).attr("height", Math.max(0, H - 8)).attr("rx", 6).attr("fill", t.surface ?? t.grid)).call((sel) => sel.select("text").attr("x", (l) => (l.x0 + l.x1) / 2).attr("y", 22).attr("text-anchor", "middle").attr("fill", t.muted).attr("class", "rc-flow-lane-label").text((l) => l.label));
+      const hulls = (o.hulls ?? []).map((h) => {
+        const members = nodes.filter((n) => typeof h.members === "function" ? h.members(n) : (h.members ?? []).includes(n.id));
+        const pts = members.map((n) => positions.get(n.id)).filter(Boolean).sort((a4, b) => a4.x - b.x);
+        return { ...h, pts };
+      }).filter((h) => h.pts.length);
+      const hullColor = (h) => h.color ?? t.accent;
+      this.gHulls.selectAll(".rc-flow-hull").data(hulls, (h) => h.id).join((enter) => {
+        const g = enter.append("g").attr("class", "rc-flow-hull");
+        g.append("path");
+        g.append("text");
+        return g;
+      }).call((sel) => sel.select("path").attr("d", (h) => h.pts.length > 1 ? line_default2().curve(catmullRom_default)(h.pts.map((p) => [p.x, p.y])) : `M${h.pts[0].x},${h.pts[0].y}l0.01,0`).attr("fill", "none").attr("stroke", hullColor).attr("stroke-opacity", 0.12).attr("stroke-width", R * 2 + 28).attr("stroke-linecap", "round").attr("stroke-linejoin", "round").style("pointer-events", "none")).call((sel) => sel.select("text").attr("x", (h) => h.pts[0].x - R).attr("y", (h) => Math.max(...h.pts.map((p) => p.y)) + R + 48).attr("fill", hullColor).attr("class", "rc-flow-hull-label").text((h) => h.label ?? ""));
+      const widthOf = linkWidthScale(this.data.links, {
+        min: 1.6,
+        max: 22,
+        ...o.linkWidth ?? {}
+      });
+      const types = o.linkTypes ?? {};
+      const keys = [...new Set(this.data.links.map((l) => this._linkKey(l)))];
+      const colorOf = (l) => types[this._linkKey(l)]?.color ?? palette[keys.indexOf(this._linkKey(l)) % palette.length];
+      const dashOf = (l) => {
+        const fromType = types[this._linkKey(l)]?.dash;
+        if (fromType) return fromType;
+        return o.linkDash && o.linkDash(l) ? "6 5" : null;
+      };
+      const markerId = (key) => `rc-flow-arrow-${graph._uid}-${String(key).replace(/[^\w-]/g, "_")}`;
+      graph._defs.selectAll(".rc-flow-arrow").remove();
+      keys.forEach((key) => {
+        const color2 = types[key]?.color ?? palette[keys.indexOf(key) % palette.length];
+        graph._defs.append("marker").attr("class", "rc-flow-arrow").attr("id", markerId(key)).attr("viewBox", "0 0 10 10").attr("refX", 8).attr("refY", 5).attr("markerWidth", 9).attr("markerHeight", 9).attr("markerUnits", "userSpaceOnUse").attr("orient", "auto").append("path").attr("d", "M0,0L10,5L0,10z").attr("fill", color2);
+      });
+      const par = parallelIndex(links);
+      const geom = (l) => {
+        const a4 = positions.get(l.source), b = positions.get(l.target);
+        if (!a4 || !b) return null;
+        const dx = b.x - a4.x, dy = b.y - a4.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const ux = dx / len, uy = dy / len;
+        const sx = a4.x + ux * (R + 2), sy = a4.y + uy * (R + 2);
+        const tx = b.x - ux * (R + 4), ty = b.y - uy * (R + 4);
+        const { index: index3 = 0, count: count3 = 1 } = par.get(l.id) ?? {};
+        const flip = l.source > l.target ? -1 : 1;
+        const fan = count3 > 1 ? (index3 - (count3 - 1) / 2) * 2 * flip : 0;
+        const bend = (l.bend ?? (count3 > 1 ? 0 : 0.35)) + fan;
+        const off = bend * Math.min(60, len * 0.18);
+        const nx = -uy, ny = ux;
+        const cx = (sx + tx) / 2 + nx * off, cy = (sy + ty) / 2 + ny * off;
+        const side = off >= 0 ? 1 : -1;
+        return {
+          d: `M${sx},${sy}Q${cx},${cy} ${tx},${ty}`,
+          mid: { x: (sx + 2 * cx + tx) / 4, y: (sy + 2 * cy + ty) / 4 },
+          out: { x: nx * side, y: ny * side }
+        };
+      };
+      const linkSel = this.gLinks.selectAll(".rc-flow-link").data(links, (l) => l.id).join("path").attr("class", "rc-flow-link").attr("fill", "none").attr("d", (l) => geom(l)?.d ?? "").attr("stroke", colorOf).attr("stroke-width", widthOf).attr("stroke-dasharray", dashOf).attr("stroke-linecap", "round").attr("marker-end", (l) => `url(#${markerId(this._linkKey(l))})`);
+      const hitSel = this.gHits.selectAll(".rc-flow-link-hit").data(links, (l) => l.id).join("path").attr("class", "rc-flow-link-hit").attr("fill", "none").attr("stroke", "transparent").attr("stroke-width", (l) => Math.max(14, widthOf(l) + 8)).style("pointer-events", "stroke").style("cursor", "pointer").attr("d", (l) => geom(l)?.d ?? "");
+      const roomOf = (n) => {
+        const p = positions.get(n.id);
+        const lane = lanes.find((l) => l.id === p.lane);
+        const cols = colsPerLane.get(p.lane) ?? 1;
+        return lane ? (lane.x1 - lane.x0) / cols - 8 : 120;
+      };
+      const boxes = [];
+      nodes.forEach((n) => {
+        const p = positions.get(n.id);
+        const w = Math.min(roomOf(n), Math.max(2 * R, String(n.label ?? n.id).length * 6.6, String(n.sub ?? "").length * 6.4));
+        boxes.push({ x0: p.x - R, x1: p.x + R, y0: p.y - R, y1: p.y + R });
+        boxes.push({ x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y + R + 2, y1: p.y + R + (n.sub ? 34 : 20) });
+      });
+      hulls.forEach((h) => {
+        const x4 = h.pts[0].x - R, y4 = Math.max(...h.pts.map((p) => p.y)) + R + 48;
+        const w = String(h.label ?? "").length * 6.2;
+        boxes.push({ x0: x4, x1: x4 + w, y0: y4 - 12, y1: y4 + 3 });
+      });
+      const labelAt = /* @__PURE__ */ new Map();
+      const labelled = this.labels ? links.filter((l) => !l._dim && l.label != null && l.label !== "") : [];
+      labelled.forEach((l) => {
+        const gm = geom(l);
+        if (!gm) return;
+        const w = String(l.label).length * 6.4 + 6, h = 13;
+        const tries = [0, 14, 28, 44].map((k2) => [gm.out.x * k2, gm.out.y * k2]).concat([[0, -16], [0, 16], [gm.out.x * 44, gm.out.y * 44 - 16]]);
+        for (const [ox, oy] of tries) {
+          const x4 = gm.mid.x + ox, y4 = gm.mid.y + oy;
+          const box = { x0: x4 - w / 2, x1: x4 + w / 2, y0: y4 - 4 - h, y1: y4 - 4 };
+          if (boxes.some((b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0)) continue;
+          boxes.push(box);
+          labelAt.set(l.id, { x: x4, y: y4 });
+          break;
+        }
+      });
+      const placed = labelled.filter((l) => labelAt.has(l.id));
+      this.gLinkLabels.selectAll(".rc-flow-link-label").data(placed, (l) => l.id).join("text").attr("class", "rc-flow-link-label").attr("x", (l) => labelAt.get(l.id).x).attr("y", (l) => labelAt.get(l.id).y - 5).attr("text-anchor", "middle").attr("fill", t.muted).attr("stroke", t.bg).attr("stroke-width", 3).attr("paint-order", "stroke").style("pointer-events", "none").text((l) => l.label);
+      const ordered = nodes.slice().sort((a4, b) => {
+        const pa = positions.get(a4.id), pb = positions.get(b.id);
+        return pa.x - pb.x || pa.y - pb.y;
+      });
+      const nodeSel = this.gNodes.selectAll(".rc-flow-node").data(ordered, (n) => n.id).join((enter) => enter.append("g").attr("class", "rc-flow-node")).attr("transform", (n) => {
+        const p = positions.get(n.id);
+        return `translate(${p.x},${p.y})`;
+      }).attr("tabindex", 0).attr("role", "button").attr("aria-label", (n) => [n.label ?? n.id, this._groupCfg(n)?.label ?? n.group].filter(Boolean).join(" \u2014 ")).style("cursor", "pointer").order();
+      nodeSel.each((n, i, els) => {
+        const g = select_default2(els[i]);
+        g.selectAll("*").remove();
+        const fill = this._nodeColor(n, palette);
+        const shape = this._shape(n);
+        const stroke = { stroke: t.bg, "stroke-width": 2.5 };
+        const add2 = (tag, attrs) => {
+          const el = g.append(tag).attr("class", "rc-flow-node-shape").attr("fill", fill);
+          Object.entries({ ...stroke, ...attrs }).forEach(([k2, v2]) => el.attr(k2, v2));
+          return el;
+        };
+        if (shape === "square") add2("rect", { x: -R + 1, y: -R + 1, width: 2 * R - 2, height: 2 * R - 2, rx: 6 });
+        else if (shape === "diamond") add2("path", { d: `M0,${-R - 3}L${R + 3},0L0,${R + 3}L${-R - 3},0z` });
+        else if (shape === "stack") {
+          add2("circle", { cx: 6, cy: -5, r: R - 2, opacity: 0.55 });
+          add2("circle", { r: R });
+        } else if (!SHAPES.includes(shape) && /^[Mm]/.test(String(shape))) add2("path", { d: shape });
+        else add2("circle", { r: R });
+        const room = roomOf(n);
+        const label = g.append("text").attr("class", "rc-flow-node-label").attr("y", R + 16).attr("text-anchor", "middle").attr("fill", t.text).attr("stroke", t.bg).attr("stroke-width", 3).attr("paint-order", "stroke");
+        fitTextNode(label.node(), n.label ?? n.id, room);
+        if (n.sub) {
+          const sub = g.append("text").attr("class", "rc-flow-node-sub").attr("y", R + 30).attr("text-anchor", "middle").attr("fill", t.muted).attr("stroke", t.bg).attr("stroke-width", 3).attr("paint-order", "stroke");
+          fitTextNode(sub.node(), n.sub, room);
+        }
+        if (n.terminal) {
+          g.append("text").attr("class", "rc-flow-node-sub").attr("x", R + 6).attr("y", -R + 4).attr("fill", t.muted).text("end");
+        }
+      });
+      const apply = () => {
+        const sel = this.selected;
+        let nearNodes = null, onLinks = null;
+        if (sel?.node) {
+          nearNodes = /* @__PURE__ */ new Set([sel.node]);
+          onLinks = /* @__PURE__ */ new Set();
+          links.forEach((l) => {
+            if (l.source === sel.node || l.target === sel.node) {
+              onLinks.add(l.id);
+              nearNodes.add(l.source);
+              nearNodes.add(l.target);
+            }
+          });
+        } else if (sel?.link) {
+          const l = links.find((x4) => x4.id === sel.link);
+          if (l) {
+            onLinks = /* @__PURE__ */ new Set([l.id]);
+            nearNodes = /* @__PURE__ */ new Set([l.source, l.target]);
+          }
+        }
+        linkSel.attr("stroke-opacity", (l) => {
+          if (onLinks) return onLinks.has(l.id) ? 1 : 0.1;
+          return l._dim ? 0.14 : 0.78;
+        });
+        nodeSel.classed("is-selected", (n) => sel?.node === n.id).style("opacity", (n) => {
+          if (nearNodes) return nearNodes.has(n.id) ? 1 : 0.15;
+          return nodeDim(n) ? 0.2 : 1;
+        });
+        nodeSel.selectAll(".rc-flow-node-shape").attr("stroke", function() {
+          const n = select_default2(this.parentNode).datum();
+          return sel?.node === n.id ? t.accent : t.bg;
+        }).attr("stroke-width", function() {
+          const n = select_default2(this.parentNode).datum();
+          return sel?.node === n.id ? 4 : 2.5;
+        });
+      };
+      this._apply = apply;
+      apply();
+      const nodeById = (id2) => byId.get(id2) ?? { id: id2 };
+      const select = (s2, event = null) => {
+        this.selected = s2;
+        apply();
+        graph._showDetails(!s2 ? null : s2.node ? { node: byId.get(s2.node) ?? null } : { link: links.find((l) => l.id === s2.link) ?? null });
+        const cb = o.onSelect;
+        if (typeof cb === "function") {
+          if (!s2) cb({ node: null, link: null, event });
+          else if (s2.node) cb({ node: byId.get(s2.node) ?? null, link: null, event });
+          else cb({ node: null, link: links.find((l) => l.id === s2.link) ?? null, event });
+        }
+      };
+      this._select = select;
+      nodeSel.on("click", (event, n) => {
+        event.stopPropagation();
+        select({ node: n.id }, event);
+      }).on("keydown", (event, n) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          select({ node: n.id }, event);
+          return;
+        }
+        if (event.key === "Escape") {
+          select(null, event);
+          return;
+        }
+        const next = this._neighborFor(n, event.key, ordered, links, positions);
+        if (next) {
+          event.preventDefault();
+          nodeSel.filter((x4) => x4.id === next.id).node()?.focus();
+        }
+      }).on("mouseover", (event, n) => {
+        if (graph._tooltip.isPinned) return;
+        const [mx, my] = pointer_default(event, graph.container);
+        const nodeLinks = links.filter((l) => l.source === n.id || l.target === n.id);
+        const html2 = o.tooltipFormat ? o.tooltipFormat({ node: n, links: nodeLinks }) : this._nodeTooltip(n, nodeLinks, nodeById);
+        graph._tooltip.show(mx, my, html2);
+      }).on("mouseout", () => {
+        if (!graph._tooltip.isPinned) graph._tooltip.hide();
+      });
+      const tieHtml = (l) => {
+        const source = nodeById(l.source), target = nodeById(l.target);
+        return o.linkTooltipFormat ? o.linkTooltipFormat({ link: l, source, target }) : graph._defaultLinkTooltip(l, source, target);
+      };
+      hitSel.on("mouseover", (event, l) => {
+        if (graph._tooltip.isPinned) return;
+        const [mx, my] = pointer_default(event, graph.container);
+        graph._tooltip.show(mx, my, tieHtml(l));
+      }).on("mouseout", () => {
+        if (!graph._tooltip.isPinned) graph._tooltip.hide();
+      }).on("click", (event, l) => {
+        event.stopPropagation();
+        select({ link: l.id }, event);
+        if (typeof o.onSelect !== "function") {
+          const [mx, my] = pointer_default(event, graph.container);
+          graph._tooltip.pin(mx, my, tieHtml(l));
+        }
+      });
+      graph.svg.on("click.flow", () => {
+        if (this.selected) select(null);
+      });
+      const pass = (item) => !this.filter || this.filter(item);
+      const passing = new Set(this.data.nodes.filter(pass).map((n) => n.id));
+      const shown = new Set(this.data.links.filter((l) => pass(l) && passing.has(l.source) && passing.has(l.target)).map((l) => this._linkKey(l)));
+      this._renderLegend(keys.filter((k2) => shown.has(k2)), colorOf, dashOf, palette);
+    }
+    // Arrow keys walk the trace: → first outgoing tie, ← first incoming tie,
+    // ↑/↓ the previous/next node of the same lane.
+    _neighborFor(n, key, ordered, links, positions) {
+      if (key === "ArrowRight") {
+        const l = links.find((x4) => x4.source === n.id);
+        return l ? ordered.find((x4) => x4.id === l.target) : null;
+      }
+      if (key === "ArrowLeft") {
+        const l = links.find((x4) => x4.target === n.id);
+        return l ? ordered.find((x4) => x4.id === l.source) : null;
+      }
+      if (key === "ArrowUp" || key === "ArrowDown") {
+        const lane = positions.get(n.id).lane;
+        const same = ordered.filter((x4) => positions.get(x4.id).lane === lane).sort((a4, b) => positions.get(a4.id).y - positions.get(b.id).y);
+        const i = same.findIndex((x4) => x4.id === n.id);
+        return same[i + (key === "ArrowDown" ? 1 : -1)] ?? null;
+      }
+      return null;
+    }
+    _nodeTooltip(n, nodeLinks, nodeById) {
+      const t = this.g.theme;
+      const ins = nodeLinks.filter((l) => l.target === n.id);
+      const outs = nodeLinks.filter((l) => l.source === n.id);
+      const group2 = this._groupCfg(n)?.label ?? n.group;
+      return `<div style="max-width:280px">
+      <div style="font-weight:bold;margin-bottom:2px">${esc(n.label ?? n.id)}</div>
+      ${group2 ? `<div style="color:${t.muted};font-size:10px;text-transform:uppercase;letter-spacing:0.06em">${esc(group2)}</div>` : ""}
+      ${n.sub ? `<div style="color:${t.muted};font-size:11px">${esc(n.sub)}</div>` : ""}
+      <div style="color:${t.muted};font-size:11px;margin-top:4px">${ins.length} in \xB7 ${outs.length} out</div>
+    </div>`;
+    }
+    // Legend: node groups (dots) and tie categories (lines). Clicking a tie
+    // category hides/shows it; positions stay put.
+    _renderLegend(keys, colorOf, dashOf, palette) {
+      const el = this.g._legendEl;
+      if (!el) return;
+      const o = this.g.options;
+      el.replaceChildren();
+      const groups2 = o.nodeGroups ?? {};
+      Object.entries(groups2).forEach(([key, cfg], i) => {
+        const item = document.createElement("span");
+        item.className = "rc-legend-item rc-flow-legend-group";
+        item.innerHTML = `<svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="${cfg.color ?? palette[i % palette.length]}"/></svg><span></span>`;
+        item.querySelector("span").textContent = cfg.label ?? key;
+        el.appendChild(item);
+      });
+      const types = o.linkTypes ?? {};
+      keys.forEach((key) => {
+        const sample = this.data.links.find((l) => this._linkKey(l) === key);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "rc-legend-item rc-graph-legend-item";
+        const off = this.hiddenTypes.has(key);
+        button.setAttribute("aria-pressed", String(!off));
+        button.style.opacity = off ? "0.35" : "1";
+        const dash = types[key]?.dash ?? "";
+        button.innerHTML = `<svg width="22" height="12" aria-hidden="true"><line x1="1" y1="6" x2="21" y2="6" stroke="${colorOf(sample)}" stroke-width="3" ${dash ? `stroke-dasharray="${dash}"` : ""}/></svg><span></span>`;
+        button.querySelector("span").textContent = types[key]?.label ?? key;
+        button.addEventListener("click", () => {
+          if (this.hiddenTypes.has(key)) this.hiddenTypes.delete(key);
+          else this.hiddenTypes.add(key);
+          this.g.render();
+        });
+        el.appendChild(button);
+      });
     }
   };
 
@@ -28484,10 +28476,25 @@ var RareCharts = (() => {
     };
   }
   var edgeWeight = (edge, attrs) => attrs.weight ?? attrs.strength ?? 1;
+  var tieKey = (source, target, type2) => `${source}\u2192${target}|${type2 ?? "default"}`;
   var GraphModel = class {
     constructor(data = null) {
-      this.g = new Graph({ type: "undirected", multi: false });
+      this.g = new Graph({ type: "directed", multi: true });
+      this._proj = null;
       if (data) this.merge(data);
+    }
+    // Undirected simple view of storage for analytics. Parallel and reversed
+    // ties collapse to one edge carrying the first tie's attributes — exactly
+    // what the pre-multigraph model stored.
+    projection() {
+      if (this._proj) return this._proj;
+      const p = new Graph({ type: "undirected", multi: false });
+      this.g.forEachNode((id2) => p.addNode(id2));
+      this.g.forEachEdge((edge, attrs, s2, t) => {
+        if (!p.hasEdge(s2, t)) p.addEdge(s2, t, attrs);
+      });
+      this._proj = p;
+      return p;
     }
     get order() {
       return this.g.order;
@@ -28498,12 +28505,23 @@ var RareCharts = (() => {
     node(id2) {
       return this.g.hasNode(id2) ? { id: id2, ...this.g.getNodeAttributes(id2) } : null;
     }
+    // Number of distinct neighbors (projection): parallel ties don't inflate it.
     degree(id2) {
-      return this.g.hasNode(id2) ? this.g.degree(id2) : 0;
+      return this.g.hasNode(id2) ? this.projection().degree(id2) : 0;
     }
+    // Every tie between a and b, both directions, in canonical link shape.
+    links(a4, b) {
+      if (!this.g.hasNode(a4) || !this.g.hasNode(b)) return [];
+      const keys = /* @__PURE__ */ new Set();
+      this.g.forEachEdge(a4, (key, attrs, s2, t) => {
+        if (s2 === a4 && t === b || s2 === b && t === a4) keys.add(key);
+      });
+      return [...keys].map((key) => this._linkOf(key));
+    }
+    // First tie between a and b, or null. Kept for callers that predate the
+    // multigraph; prefer links(a, b).
     link(a4, b) {
-      const edge = this.g.hasNode(a4) && this.g.hasNode(b) ? this.g.edge(a4, b) : void 0;
-      return edge === void 0 ? null : { source: a4, target: b, ...this.g.getEdgeAttributes(edge) };
+      return this.links(a4, b)[0] ?? null;
     }
     // Merge a { nodes, links } payload into the accumulated graph.
     // Repeated merges are how the user "walks" the graph: each recenter adds
@@ -28515,12 +28533,17 @@ var RareCharts = (() => {
         this.g.mergeNode(id2, attrs);
       });
       links.forEach((l) => {
-        const { source, target, ...attrs } = l;
-        if (source === target) return;
+        const { source: src, target: tgt, from, to, id: id2, ...attrs } = l;
+        const source = src ?? from;
+        const target = tgt ?? to;
+        if (source == null || target == null || source === target) return;
         if (!this.g.hasNode(source)) this.g.addNode(source);
         if (!this.g.hasNode(target)) this.g.addNode(target);
-        if (!this.g.hasEdge(source, target)) this.g.addEdge(source, target, attrs);
+        const key = id2 != null ? String(id2) : tieKey(source, target, attrs.type);
+        if (this.g.hasEdge(key)) this.g.mergeEdgeAttributes(key, attrs);
+        else this.g.addEdgeWithKey(key, source, target, attrs);
       });
+      this._proj = null;
       return this;
     }
     // BFS neighborhood: all nodes within `depth` hops of rootId (nodes annotated
@@ -28554,24 +28577,26 @@ var RareCharts = (() => {
     // degree ~ "who has the most connections"; betweenness ~ "who do the
     // shortest paths run through" (finds brokers invisible to the eye).
     centrality() {
+      const p = this.projection();
       return {
-        degree: (0, import_degree.degreeCentrality)(this.g),
-        betweenness: (0, import_betweenness.default)(this.g, { getEdgeWeight: null })
+        degree: (0, import_degree.degreeCentrality)(p),
+        betweenness: (0, import_betweenness.default)(p, { getEdgeWeight: null })
       };
     }
     // Louvain communities collapsed into meta-nodes + inter-community links.
     // Each community is labelled after its highest-degree member.
     communitySummary() {
       if (!this.g.order) return { communities: [], links: [], assignment: {} };
-      const assignment = (0, import_graphology_communities_louvain.default)(this.g, { getEdgeWeight: edgeWeight, rng: mulberry32(42) });
+      const p = this.projection();
+      const assignment = (0, import_graphology_communities_louvain.default)(p, { getEdgeWeight: edgeWeight, rng: mulberry32(42) });
       const members = /* @__PURE__ */ new Map();
-      this.g.forEachNode((id2) => {
+      p.forEachNode((id2) => {
         const c6 = assignment[id2];
         if (!members.has(c6)) members.set(c6, []);
         members.get(c6).push(id2);
       });
       const communities = [...members.entries()].map(([c6, ids]) => {
-        const top2 = ids.slice().sort((x4, y4) => this.g.degree(y4) - this.g.degree(x4) || (x4 < y4 ? -1 : 1))[0];
+        const top2 = ids.slice().sort((x4, y4) => p.degree(y4) - p.degree(x4) || (x4 < y4 ? -1 : 1))[0];
         return {
           id: `c${c6}`,
           size: ids.length,
@@ -28581,7 +28606,7 @@ var RareCharts = (() => {
         };
       }).sort((a4, b) => b.size - a4.size || (a4.id < b.id ? -1 : 1));
       const counts = /* @__PURE__ */ new Map();
-      this.g.forEachEdge((edge, attrs, s2, t) => {
+      p.forEachEdge((edge, attrs, s2, t) => {
         const cs = assignment[s2], ct = assignment[t];
         if (cs === ct) return;
         const key = cs < ct ? `c${cs}|c${ct}` : `c${ct}|c${cs}`;
@@ -28596,7 +28621,7 @@ var RareCharts = (() => {
     // Full accumulated graph in RareCharts { nodes, links } shape.
     toData() {
       const nodes = this.g.mapNodes((id2, attrs) => ({ id: id2, ...attrs }));
-      const links = this.g.mapEdges((edge, attrs, s2, t) => ({ source: s2, target: t, ...attrs }));
+      const links = this.g.mapEdges((key) => this._linkOf(key));
       return { nodes, links };
     }
     _induced(depths, pass = null) {
@@ -28608,10 +28633,19 @@ var RareCharts = (() => {
           if (seen.has(edge) || !depths.has(s2) || !depths.has(t)) return;
           if (pass && !pass(attrs)) return;
           seen.add(edge);
-          links.push({ source: s2, target: t, ...attrs });
+          links.push(this._linkOf(edge));
         });
       });
       return { nodes, links };
+    }
+    // Canonical link object for a storage edge: the key doubles as the id.
+    _linkOf(key) {
+      return {
+        id: key,
+        source: this.g.source(key),
+        target: this.g.target(key),
+        ...this.g.getEdgeAttributes(key)
+      };
     }
   };
 
@@ -28628,7 +28662,7 @@ var RareCharts = (() => {
       // Good enough to answer "how are these two connected" for a demo backend.
       async paths(a4, b, { k: k2 = 3 } = {}) {
         if (!model.has(a4) || !model.has(b)) return { paths: [], nodes: [], links: [] };
-        const work = model.g.copy();
+        const work = model.projection().copy();
         const paths = [];
         for (let i = 0; i < k2; i++) {
           const p = (0, import_unweighted.bidirectional)(work, a4, b);
@@ -28642,10 +28676,11 @@ var RareCharts = (() => {
         const links = [];
         paths.forEach((p) => {
           for (let j = 0; j < p.length - 1; j++) {
-            const key = p[j] < p[j + 1] ? `${p[j]}|${p[j + 1]}` : `${p[j + 1]}|${p[j]}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            links.push(model.link(p[j], p[j + 1]));
+            model.links(p[j], p[j + 1]).forEach((l) => {
+              if (seen.has(l.id)) return;
+              seen.add(l.id);
+              links.push(l);
+            });
           }
         });
         return { paths, nodes, links };
@@ -28681,11 +28716,21 @@ var RareCharts = (() => {
 
   // assets/charts/src/graph/layouts/ego.js
   var linkW = (l) => l.weight ?? l.strength ?? 0.5;
+  var CELL_W = 96;
+  var CELL_H = 50;
+  var PAD = 28;
+  function egoCapacity(W, H, nodeRadius = 22) {
+    const gw = Math.max(1, W - PAD * 2);
+    const gh = Math.max(1, H - nodeRadius * 2 - 28);
+    return Math.max(1, Math.floor(gw / CELL_W) * Math.floor(gh / CELL_H) - 1);
+  }
   function egoLayout({ nodes = [], links = [] } = {}, {
     rootId,
     width: W = 800,
     height: H = 520,
-    groupBy = "group"
+    groupBy = "group",
+    nodeRadius = 22,
+    sectorLabels = false
   } = {}) {
     const positions = /* @__PURE__ */ new Map();
     const sectors = [];
@@ -28693,8 +28738,13 @@ var RareCharts = (() => {
     const pad3 = 28;
     const gw = Math.max(1, W - pad3 * 2);
     const gh = Math.max(1, H - pad3 * 2);
-    const target = Math.max(nodes.length + 8, Math.ceil(nodes.length * 1.35));
-    const cols = Math.max(4, Math.round(Math.sqrt(target * gw / gh)));
+    const maxCells = egoCapacity(W, H, nodeRadius) + 1;
+    const target = Math.max(
+      nodes.length + 1,
+      Math.min(Math.max(nodes.length + 8, Math.ceil(nodes.length * 1.35)), maxCells)
+    );
+    const maxCols = Math.max(4, Math.floor(gw / CELL_W));
+    const cols = Math.min(maxCols, Math.max(4, Math.round(Math.sqrt(target * gw / gh))));
     const rows = Math.max(3, Math.ceil(target / cols));
     const cellW = gw / cols;
     const cellH = gh / rows;
@@ -28706,6 +28756,7 @@ var RareCharts = (() => {
     const rootR = Math.floor(rows / 2);
     const rootC = Math.floor(cols / 2);
     take(rootR, rootC);
+    const rowOf = /* @__PURE__ */ new Map([[rootId, rootR]]);
     positions.set(rootId, { x: cxOf(rootC), y: cyOf(rootR), depth: 0 });
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const adjacency = /* @__PURE__ */ new Map();
@@ -28740,6 +28791,8 @@ var RareCharts = (() => {
       members.get(k2).push(n);
     });
     const keys = [...members.keys()].sort((a4, b) => members.get(b).length - members.get(a4).length || a4.localeCompare(b));
+    const others = nodes.filter((n) => n.id !== rootId && (n.depth ?? 0) > 0).length;
+    const dominant = keys.length > 0 && others >= 6 && members.get(keys[0]).length / others > 0.8;
     const midR = Math.floor(rows / 2), midC = Math.floor(cols / 2);
     const anchorCells = [
       [0, cols - 1],
@@ -28760,16 +28813,19 @@ var RareCharts = (() => {
       // right-mid
     ];
     keys.forEach((key, ki) => {
-      const [ar, ac2] = anchorCells[ki % anchorCells.length];
-      const ax = cxOf(ac2), ay = cyOf(ar);
-      const list = members.get(key).slice().sort((x5, y5) => (y5.depth ?? 0) - (x5.depth ?? 0) || String(x5.label ?? x5.id).localeCompare(String(y5.label ?? y5.id)));
+      const centred = dominant && ki === 0;
+      const [ar, ac2] = centred ? [rootR, rootC] : anchorCells[(ki - (dominant ? 1 : 0)) % anchorCells.length];
+      const pull = dominant && !centred ? 0.5 : 1;
+      const ax = cxOf(rootC) + (cxOf(ac2) - cxOf(rootC)) * pull;
+      const ay = cyOf(rootR) + (cyOf(ar) - cyOf(rootR)) * pull;
+      const list = members.get(key).slice().sort((x5, y5) => (centred ? (x5.depth ?? 0) - (y5.depth ?? 0) : (y5.depth ?? 0) - (x5.depth ?? 0)) || String(x5.label ?? x5.id).localeCompare(String(y5.label ?? y5.id)));
       list.forEach((n) => {
         let best = null, bestD = Infinity;
         for (let r = 0; r < rows; r++) {
           for (let c6 = 0; c6 < cols; c6++) {
             if (!free(r, c6)) continue;
             const dx = cxOf(c6) - ax, dy = cyOf(r) - ay;
-            const d = dx * dx + dy * dy;
+            const d = centred ? (dx / gw) ** 2 + (dy / gh) ** 2 + (Math.atan2(dy, dx) + Math.PI * 2.5) % (Math.PI * 2) * 1e-9 : dx * dx + dy * dy;
             if (d < bestD - 1e-9) {
               bestD = d;
               best = [r, c6];
@@ -28778,15 +28834,32 @@ var RareCharts = (() => {
         }
         if (!best) return;
         take(best[0], best[1]);
+        rowOf.set(n.id, best[0]);
         positions.set(n.id, { x: cxOf(best[1]), y: cyOf(best[0]), depth: n.depth ?? 1 });
       });
+      if (centred) {
+        sectors.push({ key, angle: Math.PI / 2, x: W / 2, y: pad3 * 0.4 });
+        return;
+      }
       const onTop = ar === 0, onBottom = ar === rows - 1;
       const x4 = ac2 === 0 ? pad3 * 0.35 : ac2 === cols - 1 ? W - pad3 * 0.35 : ax;
       const y4 = onTop ? pad3 * 0.4 : onBottom ? H - pad3 * 0.35 : ay;
       const angle2 = Math.atan2(H / 2 - y4, W / 2 - x4);
       sectors.push({ key, angle: angle2, x: x4, y: y4 });
     });
-    return { positions, sectors };
+    const used = [...rowOf.values()];
+    const rMin = Math.min(...used), rMax = Math.max(...used);
+    const yTop = nodeRadius + 6 + (sectorLabels ? 14 : 0);
+    const yBot = H - nodeRadius - 22 - (sectorLabels ? 14 : 0);
+    if (rMax > rMin && yBot > yTop) {
+      const step = Math.min((yBot - yTop) / (rMax - rMin), cellH * 1.6);
+      const span = step * (rMax - rMin);
+      const y06 = yTop + (yBot - yTop - span) / 2;
+      positions.forEach((pos, id2) => {
+        pos.y = y06 + (rowOf.get(id2) - rMin) * step;
+      });
+    }
+    return { positions, sectors, cellW };
   }
 
   // assets/charts/src/graph/layouts/path.js
@@ -28801,7 +28874,7 @@ var RareCharts = (() => {
     const pad3 = padX ?? (context ? 150 : 70);
     const usableW = Math.max(1, W - pad3 * 2);
     const count3 = paths.length;
-    const rowGap = count3 > 1 ? Math.min(110, (H - 120) / (count3 - 1)) : 0;
+    const rowGap = count3 > 1 ? Math.min(150, (H - 76) / (count3 - 1)) : 0;
     const yForRow = (row) => H / 2 + (row - (count3 - 1) / 2) * rowGap;
     paths.forEach((p, row) => {
       const last = Math.max(1, p.length - 1);
@@ -28815,7 +28888,14 @@ var RareCharts = (() => {
           hop
         });
       });
-      rows.push({ y: yForRow(row), hops: p.length - 1, shortest: row === 0 });
+      const hops = p.length - 1;
+      rows.push({
+        y: yForRow(row),
+        hops,
+        shortest: row === 0,
+        x: hops > 1 ? pad3 + usableW / last : pad3 + usableW / 2,
+        direct: hops <= 1
+      });
     });
     if (context) {
       const fan = (ids, at, side) => {
@@ -28846,7 +28926,9 @@ var RareCharts = (() => {
   // assets/charts/src/graph/layouts/cluster.js
   function clusterLayout({ nodes = [] } = {}, {
     width: W = 800,
-    height: H = 520
+    height: H = 520,
+    pad: pad3 = 48,
+    nodeRadius = 22
   } = {}) {
     const positions = /* @__PURE__ */ new Map();
     if (!nodes.length) return positions;
@@ -28855,10 +28937,39 @@ var RareCharts = (() => {
       positions.set(nodes[0].id, { x: cx, y: cy });
       return positions;
     }
-    const R = Math.min(W, H) * 0.37;
-    nodes.forEach((n, i) => {
-      const angle2 = -Math.PI / 2 + i / nodes.length * Math.PI * 2;
-      positions.set(n.id, { x: cx + R * Math.cos(angle2), y: cy + R * Math.sin(angle2) });
+    const gw = Math.max(1, W - pad3 * 2);
+    const gh = Math.max(1, H - pad3 * 2);
+    const n = nodes.length;
+    const cols = Math.max(1, Math.min(n, Math.round(Math.sqrt(n * gw / gh))));
+    const rows = Math.ceil(n / cols);
+    const cellW = gw / cols, cellH = gh / rows;
+    const cells = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c6 = 0; c6 < cols; c6++) {
+        const x4 = pad3 + cellW * (c6 + 0.5), y4 = pad3 + cellH * (r + 0.5);
+        const d = Math.hypot(x4 - cx, y4 - cy);
+        const a4 = (Math.atan2(y4 - cy, x4 - cx) + Math.PI * 2.5) % (Math.PI * 2);
+        cells.push({ x: x4, y: y4, d, a: a4 });
+      }
+    }
+    cells.sort((p, q) => p.d - q.d || p.a - q.a);
+    nodes.forEach((node, i) => {
+      const cell = cells[i];
+      positions.set(node.id, { x: cell.x, y: cell.y, row: Math.round((cell.y - pad3) / cellH - 0.5) });
+    });
+    const radiusOf = (n2) => nodeRadius * (n2.size ?? 1);
+    const usedRows = [...new Set([...positions.values()].map((p) => p.row))].sort((a4, b) => a4 - b);
+    if (usedRows.length > 1) {
+      const rowR = (r) => Math.max(...nodes.filter((n2) => positions.get(n2.id).row === r).map(radiusOf));
+      const yTop = rowR(usedRows[0]) + 6;
+      const yBot = H - rowR(usedRows[usedRows.length - 1]) - 22;
+      const step = (yBot - yTop) / (usedRows.length - 1);
+      positions.forEach((p) => {
+        p.y = yTop + usedRows.indexOf(p.row) * step;
+      });
+    }
+    positions.forEach((p) => {
+      delete p.row;
     });
     return positions;
   }
@@ -28906,6 +29017,8 @@ var RareCharts = (() => {
   var linkPresets = { personal, knowledge, org, tech, causal };
 
   // assets/charts/src/charts/Graph.js
+  var escapeHtml = (v2) => String(v2).replace(/[&<>"']/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c6]);
+  var safeUrl = (url) => typeof url === "string" && /^(https?:|\/|#)/i.test(url.trim());
   var Graph2 = class extends Chart {
     constructor(selector, options = {}) {
       super(selector, {
@@ -28932,9 +29045,11 @@ var RareCharts = (() => {
       this._manual = /* @__PURE__ */ new Map();
       this._hidden = new Set(options.hiddenNodes ?? []);
       this._ready = Promise.resolve();
+      this._autoFocusId = null;
       this._switching = false;
       this._hasRendered = false;
       this._tooltip = new Tooltip(this.container, this.theme);
+      this._uid = Math.random().toString(36).slice(2, 8);
       this._linkTypes = options.linkTypes ?? {
         default: { color: "#888888", dash: null, label: "Connection" }
       };
@@ -28944,36 +29059,40 @@ var RareCharts = (() => {
       this._nodeIcons = options.nodeIcons === false ? null : { ...defaultNodeIcons, ...options.nodeIcons ?? {} };
       this._initSVG();
       this._initGraphChrome();
+      this._initDetails();
     }
     // ─── Public API ───────────────────────────────────────────────────────────
     // Ego view around `id`: fetch its neighborhood, merge into the model,
     // lay out from the accumulated graph.
     focus(id2, { types } = {}) {
-      return this._enqueue(async () => {
-        if (types !== void 0) this._setRelationTypesState(types);
-        const depth = this.options.depth ?? 2;
-        const activeTypes = this._activeRelationTypes();
-        const sub = await this._requireSource().neighbors(id2, { depth, types: activeTypes });
-        this._model.merge(sub);
-        (sub.links ?? []).forEach((l) => this._knownTypes.add(String(l.type ?? "default")));
-        this._view = "ego";
-        this._root = id2;
-        this._paths = null;
-        this._ctxIds = null;
-        this._shortestKeys = null;
-        this._rows = null;
-        this._manual = /* @__PURE__ */ new Map();
-        this._anchors = /* @__PURE__ */ new Set([id2]);
-        this._viewData = this._model.neighborhood(id2, depth, { types: activeTypes });
-        this.render();
-        this._recordHistory({ view: "ego", root: id2, types: activeTypes });
-        this._resetZoomSilently();
-      });
+      this._autoFocusId = null;
+      return this._enqueue(() => this._focusTask(id2, { types }));
+    }
+    async _focusTask(id2, { types } = {}) {
+      if (types !== void 0) this._setRelationTypesState(types);
+      const depth = this.options.depth ?? 2;
+      const activeTypes = this._activeRelationTypes();
+      const sub = await this._requireSource().neighbors(id2, { depth, types: activeTypes });
+      this._model.merge(sub);
+      (sub.links ?? []).forEach((l) => this._knownTypes.add(String(l.type ?? "default")));
+      this._view = "ego";
+      this._root = id2;
+      this._paths = null;
+      this._ctxIds = null;
+      this._shortestKeys = null;
+      this._rows = null;
+      this._manual = /* @__PURE__ */ new Map();
+      this._anchors = /* @__PURE__ */ new Set([id2]);
+      this._viewData = this._model.neighborhood(id2, depth, { types: activeTypes });
+      this.render();
+      this._recordHistory({ view: "ego", root: id2, types: activeTypes });
+      this._resetZoomSilently();
     }
     // Path view: up to `pathCount` routes between a and b.
     // Pathfinding is the source's job (server-side on a real backend) — the
     // client only ever holds the neighborhoods it has walked.
     connect(a4, b) {
+      this._autoFocusId = null;
       return this._enqueue(async () => {
         const o = this.options;
         const res = await this._requireSource().paths(a4, b, { k: o.pathCount ?? 3 });
@@ -29036,6 +29155,7 @@ var RareCharts = (() => {
     // Cluster view: communities as meta-nodes. Clicking one recenters the ego
     // view on its most-connected member.
     overview() {
+      this._autoFocusId = null;
       return this._enqueue(async () => {
         const agg = await this._requireSource().aggregates();
         const maxSize = Math.max(1, ...agg.communities.map((c6) => c6.size));
@@ -29056,7 +29176,11 @@ var RareCharts = (() => {
             _top: c6.top,
             _size: c6.size
           })),
-          links: agg.links.map((l) => ({ ...l, strength: Math.min(1, l.weight / 8) }))
+          links: agg.links.map((l) => ({
+            ...l,
+            id: pairKey(l.source, l.target),
+            strength: Math.min(1, l.weight / 8)
+          }))
         };
         this.render();
         this._recordHistory({ view: "cluster", root: this._root, types: this._activeRelationTypes() });
@@ -29064,8 +29188,11 @@ var RareCharts = (() => {
       });
     }
     // Static payload convenience: simulate a backend over the given data and
-    // focus the best-connected node.
+    // focus the best-connected node — unless a view change (focus, connect,
+    // overview) is requested in the same tick: `setData(d).focus(id)` then
+    // renders `id` once, without first drawing and discarding the default ego.
     setData(data = {}) {
+      if (this._view === "flow") return this._setFlowData(data);
       this._source = memorySource(data);
       this._model = new GraphModel();
       const score2 = /* @__PURE__ */ new Map();
@@ -29074,7 +29201,71 @@ var RareCharts = (() => {
         score2.set(l.target, (score2.get(l.target) ?? 0) + 1);
       });
       const best = [...score2.entries()].sort((a4, b) => b[1] - a4[1])[0]?.[0] ?? (data.nodes ?? [])[0]?.id;
-      if (best != null) this.focus(best);
+      if (best == null) return this;
+      this._autoFocusId = best;
+      return this._enqueue(async () => {
+        const id2 = this._autoFocusId;
+        this._autoFocusId = null;
+        if (id2 != null) await this._focusTask(id2);
+      });
+    }
+    // ─── Flow view ────────────────────────────────────────────────────────────
+    // The flow view draws the given trace whole — it is the query result — so
+    // there is no source to walk and no default focus.
+    _setFlowData(data) {
+      const norm = normalizeLinkData(data);
+      const nodes = norm.nodes.map((n) => ({ ...n, id: String(n.id) }));
+      const known = new Set(nodes.map((n) => n.id));
+      norm.links.forEach((l) => [l.source, l.target].forEach((id2) => {
+        if (!known.has(id2)) {
+          known.add(id2);
+          nodes.push({ id: id2 });
+        }
+      }));
+      this._model = new GraphModel({ nodes, links: norm.links });
+      this._flow().setData({ nodes, links: norm.links });
+      this._viewData = { nodes, links: norm.links };
+      this.render();
+      return this;
+    }
+    _flow() {
+      if (!this._flowView) this._flowView = new FlowView(this);
+      return this._flowView;
+    }
+    // Show only nodes/ties passing fn(item); a tie hides with either end.
+    // Positions do not move. null clears.
+    setFilter(fn) {
+      this._flow().filter = typeof fn === "function" ? fn : null;
+      this.render();
+      return this;
+    }
+    // Ties outside [from, to] dim (or hide, timeWindowMode: 'hide'); nodes
+    // whose ties are all outside fade. null bounds are open.
+    setTimeWindow(from = null, to = null) {
+      this._flow().window = from == null && to == null ? null : { from, to };
+      this.render();
+      return this;
+    }
+    // Select a node (id) or a tie ({ link: id }), as a click would.
+    select(target) {
+      const f = this._flow();
+      const sel = target == null ? null : typeof target === "object" ? target.link != null ? { link: String(target.link) } : null : { node: String(target) };
+      if (f._select) f._select(sel);
+      else f.selected = sel;
+      return this;
+    }
+    clearSelection() {
+      return this.select(null);
+    }
+    // Replace the group outlines ([] or null removes them).
+    setHulls(hulls) {
+      this.options.hulls = hulls ?? [];
+      this.render();
+      return this;
+    }
+    setLinkLabels(on = true) {
+      this._flow().labels = !!on;
+      this.render();
       return this;
     }
     // Merge an incremental payload — e.g. a news item asserting a new tie —
@@ -29144,7 +29335,9 @@ var RareCharts = (() => {
       this.gZoom = this.gRoot.append("g").attr("class", "rc-graph-zoom");
       this.gSectors = this.gZoom.append("g").attr("class", "rc-graph-sectors");
       this.gLinks = this.gZoom.append("g").attr("class", "rc-graph-links");
+      this.gLinkHits = this.gZoom.append("g").attr("class", "rc-graph-link-hits");
       this.gNodes = this.gZoom.append("g").attr("class", "rc-graph-nodes");
+      this.gLinkBadges = this.gZoom.append("g").attr("class", "rc-graph-link-badges");
       this._legendEl = document.createElement("div");
       this._legendEl.className = "rc-graph-legend rc-legend";
       this.container.appendChild(this._legendEl);
@@ -29154,10 +29347,11 @@ var RareCharts = (() => {
           this._maybeSemanticZoom(event.transform.k);
         });
         this.svg.call(this._zoom).on("dblclick.zoom", null);
-        this._initZoomControls();
       }
+      this._initTools();
     }
     _initGraphChrome() {
+      this.container.style.position = "relative";
       this._breadcrumbsEl = document.createElement("nav");
       this._breadcrumbsEl.className = "rc-graph-breadcrumbs";
       this._breadcrumbsEl.setAttribute("aria-label", "Graph navigation");
@@ -29172,28 +29366,229 @@ var RareCharts = (() => {
       });
       this.container.appendChild(this._overflowEl);
     }
-    _initZoomControls() {
+    // ─── Details panel ────────────────────────────────────────────────────────
+    _initDetails() {
+      const d = this.options.details;
+      if (!d) return;
+      let el;
+      if (d === true) {
+        el = document.createElement("div");
+        this._detailsOwned = true;
+      } else {
+        el = typeof d === "string" ? document.querySelector(d) : d;
+        if (!(el instanceof HTMLElement)) return;
+        this._detailsOwned = false;
+      }
+      el.classList.add("rc-graph-details");
+      if (!el.hasAttribute("aria-live")) el.setAttribute("aria-live", "polite");
+      this._detailsEl = el;
+      this._detailsSubject = null;
+      this.container.appendChild(el);
+    }
+    // Side or below, by card width. Returns the width the layout must leave
+    // free on the right (0 when the panel sits below).
+    _layoutDetails() {
+      const el = this._detailsEl;
+      if (!el) return 0;
+      const o = this.options;
+      const cs = window.getComputedStyle(this.container);
+      const padL = parseFloat(cs.paddingLeft) || 0, padR = parseFloat(cs.paddingRight) || 0;
+      const cw = this.container.clientWidth - padL - padR;
+      this._detailsInset = padR;
+      const width = o.detailsWidth ?? 300;
+      const minDrawing = this._view === "flow" ? o.minWidth ?? 0 : 0;
+      const side = cw >= (o.detailsBreakpoint ?? 1e3) && cw >= minDrawing + width + 12;
+      this.container.classList.toggle("rc-graph--details-side", side);
+      this.container.classList.toggle("rc-graph--details-below", !side);
+      if (!this._expanded) {
+        this._baseCardHeight ??= this.container.style.height;
+        const base = parseFloat(this._baseCardHeight) || o.height || 520;
+        const want = side ? `${base}px` : `${base + (o.detailsHeight ?? 200)}px`;
+        if (this.container.style.height !== want) this.container.style.height = want;
+      }
+      el.style.width = side ? `${width}px` : "";
+      el.style.height = side ? "" : `${o.detailsHeight ?? 200}px`;
+      const clear = side ? `${width + 12}px` : "";
+      if (this._legendEl) this._legendEl.style.marginRight = clear;
+      if (this._breadcrumbsEl) this._breadcrumbsEl.style.marginRight = clear;
+      return side ? width + 12 : 0;
+    }
+    // Side panel: aligned with the drawing's top and height. Called after the
+    // drawing and its legend are done — the legend's height moves the svg.
+    _placeDetails(svgEl) {
+      const el = this._detailsEl;
+      if (!el || !this.container.classList.contains("rc-graph--details-side")) {
+        if (el) {
+          el.style.top = "";
+          el.style.height = el.style.height || "";
+        }
+        return;
+      }
+      const svgBox = svgEl.getBoundingClientRect();
+      const cardBox = this.container.getBoundingClientRect();
+      const top2 = svgBox.top - cardBox.top - this.container.clientTop + this.container.scrollTop;
+      el.style.top = `${top2}px`;
+      el.style.right = `${this._detailsInset ?? 0}px`;
+      el.style.height = `${svgBox.height}px`;
+    }
+    // What the panel shows: a hovered/selected node or tie, else the default
+    // (the focused node in the ego view, nothing elsewhere).
+    _showDetails(subject) {
+      this._detailsSubject = subject;
+      this._refreshDetails();
+    }
+    _refreshDetails() {
+      const el = this._detailsEl;
+      if (!el || !this._detailsOwned) return;
+      let subject = this._detailsSubject;
+      if (subject?.node && !(this._shown ?? this._viewData)?.nodes?.some((n) => n.id === subject.node.id)) subject = null;
+      if (!subject && this._view === "ego" && this._root != null) {
+        const root3 = this._model.node(this._root);
+        if (root3) subject = { node: root3 };
+      }
+      const fmt = this.options.detailsFormat;
+      el.innerHTML = fmt ? fmt({ node: subject?.node ?? null, link: subject?.link ?? null, view: this._view }) : this._defaultDetails(subject);
+    }
+    _defaultDetails(subject) {
       const t = this.theme;
-      this.container.style.position = "relative";
-      const wrap = document.createElement("div");
-      wrap.className = "rc-graph-zoom-controls";
-      wrap.style.cssText = "position:absolute;left:8px;bottom:8px;display:flex;flex-direction:row;gap:4px;z-index:2;";
-      this._zoomControlsEl = wrap;
-      const mk = (label, title, fn) => {
+      const esc3 = escapeHtml;
+      const kind = (txt) => `<p class="rc-graph-details-kind">${esc3(txt)}</p>`;
+      const row = (k2, v2) => `<dt>${esc3(k2)}</dt><dd>${v2}</dd>`;
+      const nameOf = (id2) => esc3(this._model.node(id2)?.label ?? id2);
+      if (subject?.node) {
+        const n = subject.node;
+        const ties = this._model.toData().links.filter((l) => l.source === n.id || l.target === n.id);
+        const group2 = this.options.nodeGroups?.[n.group]?.label ?? n.group;
+        const list = ties.slice(0, 12).map((l) => {
+          const other = l.source === n.id ? l.target : l.source;
+          const dir = l.source === n.id ? "\u2192" : "\u2190";
+          const extra = l.label ?? (l.value != null ? Number(l.value).toLocaleString() : "");
+          const type2 = this._linkTypes[l.type ?? "default"]?.label ?? l.type ?? "";
+          return `<li>${dir} ${nameOf(other)}${type2 ? ` <span class="rc-graph-details-muted">\xB7 ${esc3(type2)}</span>` : ""}${extra ? ` <span class="rc-graph-details-muted">\xB7 ${esc3(extra)}</span>` : ""}</li>`;
+        }).join("");
+        const more = ties.length > 12 ? `<p class="rc-graph-details-muted">+${ties.length - 12} more</p>` : "";
+        return `${group2 ? kind(group2) : ""}<h4>${esc3(n.label ?? n.id)}</h4>
+        ${n.sub ? `<p class="rc-graph-details-muted">${esc3(n.sub)}</p>` : ""}
+        ${n.note ?? n.description ? `<p>${esc3(n.note ?? n.description)}</p>` : ""}
+        <dl>${row("Connections", String(ties.length))}</dl>
+        ${list ? `<ul>${list}</ul>${more}` : ""}`;
+      }
+      if (subject?.link) {
+        const l = subject.link;
+        const type2 = this._linkTypes[l.type ?? "default"]?.label ?? l.type;
+        const period2 = [l.start, l.end].filter((v2) => v2 != null && v2 !== "").map(esc3).join(" \u2013 ");
+        const sources = Array.isArray(l.sources) ? l.sources.map((src) => {
+          const url = typeof src === "string" ? src : src?.url;
+          const title = typeof src === "string" ? src : src?.title ?? src?.url;
+          return safeUrl(url) ? `<li><a href="${esc3(url)}" target="_blank" rel="noopener noreferrer">${esc3(title)}</a></li>` : `<li>${esc3(title ?? "")}</li>`;
+        }).join("") : "";
+        return `${type2 ? kind(type2) : ""}<h4>${nameOf(l.source)} \u2192 ${nameOf(l.target)}</h4>
+        <dl>${l.label ? row("Label", esc3(l.label)) : ""}${l.value != null && l.value !== "" ? row("Value", esc3(typeof l.value === "number" ? l.value.toLocaleString() : l.value)) : ""}${period2 ? row("Period", period2) : ""}</dl>
+        ${sources ? `<ul>${sources}</ul>` : ""}`;
+      }
+      const hint = this._view === "flow" ? "Select a node or a tie to see its details." : "Hover a node, or click a tie, to see its details.";
+      return `${kind("Details")}<p style="color:${t.muted}">${hint}</p>`;
+    }
+    // Footer tools, right of the source line: the "+N more" and "N hidden"
+    // notes, zoom buttons, full screen. Never over the canvas, where they
+    // covered the bottom row. A chart without source/note gets a footer row
+    // just for them.
+    _initTools() {
+      const t = this.theme;
+      const tools = document.createElement("div");
+      tools.className = "rc-graph-tools";
+      this._toolsEl = tools;
+      const mkButton = (label, title, fn, cls = "") => {
         const b = document.createElement("button");
         b.type = "button";
         b.textContent = label;
         b.title = title;
-        b.style.cssText = `width:26px;height:26px;padding:0;border:1px solid ${t.border ?? t.muted};border-radius:4px;background:${t.bg ?? "#fff"};color:${t.text};font-size:14px;line-height:1;cursor:pointer;`;
+        b.setAttribute("aria-label", title);
+        if (cls) b.className = cls;
+        b.style.cssText = `height:26px;min-width:26px;padding:0 6px;border:1px solid ${t.border ?? t.muted};border-radius:4px;background:${t.bg ?? "#fff"};color:${t.text};font-size:14px;line-height:1;cursor:pointer;`;
         b.addEventListener("click", fn);
-        wrap.appendChild(b);
+        return b;
       };
-      mk("+", "Zoom in", () => this._zoomBy(1.4));
-      mk("\u2212", "Zoom out", () => this._zoomBy(1 / 1.4));
-      mk("\u27F2", "Reset view", () => {
-        if (this._zoom) this.svg.transition().duration(200).call(this._zoom.transform, identity5);
+      const mkNote = (cls, fn) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = cls;
+        b.hidden = true;
+        b.addEventListener("click", fn);
+        tools.appendChild(b);
+        return b;
+      };
+      this._overflowNoteEl = mkNote("rc-graph-note", () => this._toggleOverflow());
+      this._hiddenNoteEl = mkNote("rc-graph-hidden-note", () => {
+        this._hidden.clear();
+        this.render();
       });
-      this.container.appendChild(wrap);
+      if (this.options.zoom !== false) {
+        const zoom = document.createElement("div");
+        zoom.className = "rc-graph-zoom-controls";
+        zoom.setAttribute("role", "group");
+        zoom.setAttribute("aria-label", "Zoom");
+        zoom.append(
+          mkButton("+", "Zoom in", () => this._zoomBy(1.4)),
+          mkButton("\u2212", "Zoom out", () => this._zoomBy(1 / 1.4)),
+          mkButton("\u27F2", "Reset view", () => {
+            if (this._zoom) this.svg.transition().duration(200).call(this._zoom.transform, identity5);
+          })
+        );
+        tools.appendChild(zoom);
+        this._zoomControlsEl = zoom;
+      }
+      if (this.options.fullscreen !== false) {
+        this._fullscreenBtn = mkButton("\u26F6", "Full screen", () => this.toggleFullscreen(), "rc-graph-fullscreen");
+        tools.appendChild(this._fullscreenBtn);
+        this._onFullscreenChange = () => this._syncFullscreen(document.fullscreenElement === this.container);
+        document.addEventListener("fullscreenchange", this._onFullscreenChange);
+        this._onFullscreenKey = (event) => {
+          if (event.key === "Escape" && this._expanded && !document.fullscreenElement) this.toggleFullscreen(false);
+        };
+        document.addEventListener("keydown", this._onFullscreenKey);
+      }
+      if (!this._footerEl) {
+        this._footerEl = document.createElement("div");
+        this._footerEl.className = "rc-chart-footer";
+        this.container.appendChild(this._footerEl);
+      }
+      this._footerEl.classList.add("rc-chart-footer--tools");
+      this._footerEl.insertBefore(tools, this._sourceEl ? this._sourceEl.nextSibling : this._footerEl.firstChild);
+    }
+    // Full screen: the Fullscreen API where it exists (Esc exits natively),
+    // otherwise a fixed overlay with our own Esc. The card stretches to the
+    // screen; the resize re-lays the graph out, so more of it fits.
+    toggleFullscreen(on = !this._expanded) {
+      const el = this.container;
+      if (on === this._expanded) return this;
+      if (el.requestFullscreen && document.fullscreenEnabled !== false) {
+        if (on) el.requestFullscreen().catch(() => this._syncFullscreen(true));
+        else if (document.fullscreenElement === el) document.exitFullscreen();
+        else this._syncFullscreen(false);
+      } else {
+        this._syncFullscreen(on);
+      }
+      return this;
+    }
+    _syncFullscreen(on) {
+      if (on === this._expanded) return;
+      this._expanded = on;
+      const el = this.container;
+      if (on) {
+        this._savedHeight = el.style.height;
+        el.style.height = "100vh";
+        el.classList.add("rc-graph--fullscreen");
+      } else {
+        el.style.height = this._savedHeight ?? "";
+        el.classList.remove("rc-graph--fullscreen");
+      }
+      if (this._fullscreenBtn) {
+        this._fullscreenBtn.textContent = on ? "\u2715" : "\u26F6";
+        this._fullscreenBtn.title = on ? "Exit full screen (Esc)" : "Full screen";
+        this._fullscreenBtn.setAttribute("aria-label", this._fullscreenBtn.title);
+      }
+      requestAnimationFrame?.(() => this.render());
     }
     _zoomBy(factor) {
       if (!this._zoom) return;
@@ -29202,10 +29597,32 @@ var RareCharts = (() => {
     // ─── Render ───────────────────────────────────────────────────────────────
     render() {
       if (!this._viewData?.nodes?.length) return;
+      const reserve = this._layoutDetails();
+      if (this._view === "flow") {
+        const minW = this.options.minWidth ?? 0;
+        this.svg.style("min-width", minW ? `${minW + reserve}px` : null);
+        this.container.style.overflowX = minW ? "auto" : "";
+      }
       const svgEl = this.svg?.node();
-      const W = svgEl?.clientWidth || this.width;
+      const svgW = svgEl?.clientWidth || this.width;
+      const W = svgW - reserve;
       const H = svgEl?.clientHeight || this.height;
       if (W <= 0 || H <= 0) return;
+      if (this._view === "flow") {
+        [this.gSectors, this.gLinks, this.gLinkHits, this.gLinkBadges, this.gNodes].forEach((g) => g?.selectAll("*").remove());
+        this.gRoot.selectAll(".rc-graph-row-label").remove();
+        if (this._overflowNoteEl) this._overflowNoteEl.hidden = true;
+        if (this._hiddenNoteEl) this._hiddenNoteEl.hidden = true;
+        if (this._tooltip?.isPinned) this._tooltip.unpin();
+        this._flow().render(W, H);
+        this._hasRendered = true;
+        this._renderedSize = { W: svgW, H };
+        this._refreshDetails();
+        this._placeDetails(svgEl);
+        this._refitIfResized();
+        return;
+      }
+      this._flowView?.clear();
       let data = this._viewData;
       if (this._view === "ego") {
         const visible = data.nodes.filter((n) => n.id === this._root || !n.hidden && !this._hidden.has(n.id));
@@ -29226,10 +29643,13 @@ var RareCharts = (() => {
           rootId: this._root,
           width: W,
           height: H,
+          nodeRadius: this.options.nodeRadius ?? 22,
+          sectorLabels: this.options.sectorLabels === true,
           groupBy: this.options.groupBy ?? "group"
         });
         positions = res.positions;
         sectors = res.sectors;
+        this._egoCellW = res.cellW;
       } else if (this._view === "path") {
         const res = pathLayout(
           { paths: this._paths ?? [], context: this._ctxIds },
@@ -29238,26 +29658,47 @@ var RareCharts = (() => {
         positions = res.positions;
         this._rows = res.rows;
       } else {
-        positions = clusterLayout(this._shown, { width: W, height: H });
+        positions = clusterLayout(this._shown, {
+          width: W,
+          height: H,
+          nodeRadius: this.options.nodeRadius ?? 22
+        });
       }
       this._manual.forEach((p, id2) => {
         const cur = positions.get(id2);
         if (cur) positions.set(id2, { ...cur, x: p.x, y: p.y });
       });
+      this._labelRoom = this._view === "ego" ? this._egoCellW - 6 : null;
       this._draw(positions, W, H, sectors);
-      if (this._zoomControlsEl && svgEl?.getBoundingClientRect) {
-        const svgTop = svgEl.getBoundingClientRect().top - this.container.getBoundingClientRect().top;
-        this._zoomControlsEl.style.bottom = "";
-        this._zoomControlsEl.style.top = `${Math.max(0, svgTop + H - 34)}px`;
-      }
       this._hasRendered = true;
+      this._renderedSize = { W: svgW, H };
+      this._refreshDetails();
+      this._placeDetails(svgEl);
+      this._refitIfResized();
+    }
+    // Chrome drawn after the layout — the legend for the new view, the
+    // breadcrumb trail after a navigation — takes height from the svg (it is
+    // a flex child of a fixed-height card), and nothing resizes the container
+    // to tell us. Without this check the bottom row ended up below the edge.
+    _refitIfResized() {
+      if (this._refitting || !this._renderedSize) return;
+      const svgEl = this.svg?.node();
+      const w = svgEl?.clientWidth, h = svgEl?.clientHeight;
+      if (!w || !h) return;
+      if (Math.abs(w - this._renderedSize.W) <= 1 && Math.abs(h - this._renderedSize.H) <= 1) return;
+      this._refitting = true;
+      try {
+        this.render();
+      } finally {
+        this._refitting = false;
+      }
     }
     // How many nodes fit: one per comfortable grid cell (~96×74 px with the
     // label), minus the root's. Keeps first-ring and best-connected nodes;
     // the rest stay in the model and reappear on recenter or a larger canvas.
     _trimToCapacity(data, W, H) {
       const o = this.options;
-      const max5 = o.maxNodes == null || o.maxNodes === "auto" ? Math.max(12, Math.floor(W / 96) * Math.floor(H / 74) - 1) : o.maxNodes;
+      const max5 = o.maxNodes == null || o.maxNodes === "auto" ? Math.max(12, egoCapacity(W, H, o.nodeRadius ?? 22)) : o.maxNodes;
       if (data.nodes.length <= max5) {
         this._hiddenCount = 0;
         this._overflowNodes = [];
@@ -29276,7 +29717,22 @@ var RareCharts = (() => {
     _draw(positions, W, H, sectors = null) {
       const t = this.theme;
       const o = this.options;
-      const { nodes, links } = this._shown ?? this._viewData;
+      const { nodes, links: viewLinks } = this._shown ?? this._viewData;
+      if (this._tooltip?.isPinned) this._tooltip.unpin();
+      const MAX_PARALLEL = 3;
+      const allTies = dedupeUndirected(viewLinks.map((l) => l.id != null ? l : { ...l, id: pairKey(l.source, l.target) }));
+      const byPair = /* @__PURE__ */ new Map();
+      allTies.forEach((l) => {
+        const k2 = pairKey(l.source, l.target);
+        if (!byPair.has(k2)) byPair.set(k2, []);
+        byPair.get(k2).push(l);
+      });
+      const links = [];
+      byPair.forEach((group2) => {
+        if (group2.length <= MAX_PARALLEL) links.push(...group2);
+        else links.push({ ...group2[0], _siblings: group2 });
+      });
+      const par = parallelIndex(links);
       const baseR = o.nodeRadius ?? 22;
       const sizeOf = (n) => {
         if (n?._ctx) return 0.7;
@@ -29294,37 +29750,49 @@ var RareCharts = (() => {
       const isDark = (d) => anchors.has(d.id) || !!d.color;
       const fillOf = (d) => d.color ?? (anchors.has(d.id) ? t.text : t.surface ?? t.bg);
       const strokeOf = (d) => anchors.has(d.id) ? t.text : t.border ?? t.muted;
-      const typesInUse = Array.from(new Set(links.map((l) => l.type ?? "default")));
+      const typesInUse = Array.from(new Set(allTies.map((l) => l.type ?? "default")));
+      const markerId = (type2) => `rc-arrow-${this._uid}-${String(type2).replace(/[^\w-]/g, "_")}`;
       this._defs.selectAll(".rc-arrow").remove();
       typesInUse.forEach((type2) => {
         const cfg = this._linkTypes[type2] ?? { color: t.muted };
-        this._defs.append("marker").attr("id", `rc-arrow-${type2}`).attr("class", "rc-arrow").attr("viewBox", "0 -3 7 6").attr("refX", 6).attr("refY", 0).attr("markerWidth", 5).attr("markerHeight", 5).attr("orient", "auto").append("path").attr("d", "M0,-2.5L6,0L0,2.5").attr("fill", "none").attr("stroke", cfg.color).attr("stroke-width", 1.2).attr("stroke-linecap", "round");
+        this._defs.append("marker").attr("id", markerId(type2)).attr("class", "rc-arrow").attr("viewBox", "0 -3 7 6").attr("refX", 6).attr("refY", 0).attr("markerWidth", 5).attr("markerHeight", 5).attr("orient", "auto").append("path").attr("d", "M0,-2.5L6,0L0,2.5").attr("fill", "none").attr("stroke", cfg.color).attr("stroke-width", 1.2).attr("stroke-linecap", "round");
       });
-      const linkD = (d) => {
+      const linkGeom = (d) => {
         const s2 = positions.get(d.source);
         const e = positions.get(d.target);
-        if (!s2 || !e) return "";
+        if (!s2 || !e) return null;
         const rT = nodeR(byId.get(d.target)) + 6;
         const dx = e.x - s2.x, dy = e.y - s2.y;
         const len = Math.hypot(dx, dy) || 1;
         const ex = e.x - dx / len * rT;
         const ey = e.y - dy / len * rT;
-        if (this._view !== "ego" || len < 40) return `M${s2.x},${s2.y}L${ex},${ey}`;
-        const bow = Math.min(26, len * 0.08);
+        const { index: index3 = 0, count: count3 = 1 } = par.get(d.id) ?? {};
+        const base = this._view !== "path" && len >= 40 ? Math.min(26, len * 0.08) : 0;
+        const flip = d.source > d.target ? -1 : 1;
+        const fan = count3 > 1 ? (index3 - (count3 - 1) / 2) * 16 * flip : 0;
+        const bow = base + fan;
         const nx = -dy / len, ny = dx / len;
-        const mx = (s2.x + ex) / 2 + nx * bow;
-        const my = (s2.y + ey) / 2 + ny * bow;
-        return `M${s2.x},${s2.y}Q${mx},${my} ${ex},${ey}`;
+        const cx = (s2.x + ex) / 2 + nx * bow;
+        const cy = (s2.y + ey) / 2 + ny * bow;
+        const rS = nodeR(byId.get(d.source));
+        const vx = s2.x + dx / len * rS, vy = s2.y + dy / len * rS;
+        const mid = { x: (vx + ex) / 2 + nx * bow * 0.5, y: (vy + ey) / 2 + ny * bow * 0.5 };
+        return { s: s2, e: { x: ex, y: ey }, c: { x: cx, y: cy }, mid, curved: bow !== 0 };
       };
-      const linkKey = (d) => d.source < d.target ? `${d.source}|${d.target}` : `${d.target}|${d.source}`;
-      const linkSel = this.gLinks.selectAll(".rc-graph-link").data(links, linkKey).join(
+      const linkD = (d) => {
+        const g = linkGeom(d);
+        if (!g) return "";
+        return g.curved ? `M${g.s.x},${g.s.y}Q${g.c.x},${g.c.y} ${g.e.x},${g.e.y}` : `M${g.s.x},${g.s.y}L${g.e.x},${g.e.y}`;
+      };
+      const linkKey = (d) => pairKey(d.source, d.target);
+      const linkSel = this.gLinks.selectAll(".rc-graph-link").data(links, (d) => d.id).join(
         (enter) => enter.append("path").attr("class", "rc-graph-link").attr("fill", "none").attr("d", linkD).attr("stroke-opacity", 0),
         (update) => update,
         (exit) => exit.remove()
       ).attr("stroke", (d) => (this._linkTypes[d.type ?? "default"] ?? {}).color ?? t.muted).attr("stroke-width", (d) => {
         const w = Math.max(0.75, 1.4 * (d.strength ?? d.weight ?? 0.5));
         return this._shortestKeys?.has(linkKey(d)) ? Math.max(2, w * 1.6) : w;
-      }).attr("stroke-dasharray", (d) => (this._linkTypes[d.type ?? "default"] ?? {}).dash ?? null).attr("marker-end", (d) => `url(#rc-arrow-${d.type ?? "default"})`);
+      }).attr("stroke-dasharray", (d) => (this._linkTypes[d.type ?? "default"] ?? {}).dash ?? null).attr("marker-end", (d) => `url(#${markerId(d.type ?? "default")})`);
       const linkOpacity = (l) => {
         if (l._ctx) return 0.25;
         if (this._view === "path" && this._shortestKeys) {
@@ -29334,6 +29802,78 @@ var RareCharts = (() => {
       };
       this._linkOpacity = linkOpacity;
       (dur ? linkSel.transition().duration(dur) : linkSel).attr("d", linkD).attr("stroke-opacity", linkOpacity);
+      const badgeSel = this.gLinkBadges.selectAll(".rc-graph-link-more").data(links.filter((l) => l._siblings), (d) => d.id).join("text").attr("class", "rc-graph-link-more").attr("text-anchor", "middle").attr("dominant-baseline", "middle").attr("fill", t.text).attr("stroke", t.bg).attr("stroke-width", 3).attr("paint-order", "stroke").style("pointer-events", "none").text((d) => `+${d._siblings.length - 1}`);
+      const nodeBoxes = () => nodes.map((n) => {
+        const p = positions.get(n.id);
+        if (!p) return null;
+        const r = nodeR(n);
+        const w = Math.max(2 * r, String(n.label ?? n.id).length * 6.2);
+        return [
+          { x0: p.x - r, x1: p.x + r, y0: p.y - r, y1: p.y + r },
+          { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y + r + 3, y1: p.y + r + 19 }
+        ];
+      }).filter(Boolean).flat();
+      const badgeAt = (d, obstacles) => {
+        const g = linkGeom(d);
+        if (!g) return { x: 0, y: 0 };
+        const q = (tt) => ({
+          x: (1 - tt) ** 2 * g.s.x + 2 * (1 - tt) * tt * g.c.x + tt ** 2 * g.e.x,
+          y: (1 - tt) ** 2 * g.s.y + 2 * (1 - tt) * tt * g.c.y + tt ** 2 * g.e.y
+        });
+        const dx = g.e.x - g.s.x, dy = g.e.y - g.s.y, len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len, ny = dx / len;
+        const half = 9;
+        for (const tt of [0.5, 0.4, 0.6, 0.3, 0.7]) {
+          for (const off of [0, 12, -12]) {
+            const p = q(tt);
+            const x4 = p.x + nx * off, y4 = p.y + ny * off;
+            const hit = obstacles.some((b) => x4 + half > b.x0 && x4 - half < b.x1 && y4 + 7 > b.y0 && y4 - 7 < b.y1);
+            if (!hit) return { x: x4, y: y4 };
+          }
+        }
+        return g.mid;
+      };
+      const placeBadges = (sel) => {
+        const obstacles = nodeBoxes();
+        sel.each(function(d) {
+          const p = badgeAt(d, obstacles);
+          select_default2(this).attr("x", p.x).attr("y", p.y);
+        });
+      };
+      placeBadges(badgeSel);
+      const hitSel = this.gLinkHits.selectAll(".rc-graph-link-hit").data(links, (d) => d.id).join("path").attr("class", "rc-graph-link-hit").attr("fill", "none").attr("stroke", "transparent").attr("stroke-width", 12).style("pointer-events", "stroke").style("cursor", "pointer").attr("d", linkD);
+      const tieHtml = (d) => {
+        const source = this._model.node(d.source) ?? { id: d.source };
+        const target = this._model.node(d.target) ?? { id: d.target };
+        return o.linkTooltipFormat ? o.linkTooltipFormat({ link: d, source, target }) : this._defaultLinkTooltip(d, source, target);
+      };
+      hitSel.on("mouseover", (event, d) => {
+        if (this._tooltip.isPinned) return;
+        const [mx, my] = pointer_default(event, this.container);
+        this._tooltip.show(mx, my, tieHtml(d));
+        this._highlightTie(d, nodeSel, linkSel);
+      }).on("mouseout", () => {
+        if (this._tooltip.isPinned) return;
+        this._tooltip.hide();
+        this._highlight(null, nodeSel, linkSel);
+      }).on("click", (event, d) => {
+        event.stopPropagation();
+        const [mx, my] = pointer_default(event, this.container);
+        this._highlightTie(d, nodeSel, linkSel);
+        this._showDetails({ link: d });
+        this._tooltip.pin(mx, my, tieHtml(d), {
+          onClose: () => {
+            this._highlight(null, nodeSel, linkSel);
+            this._showDetails(null);
+          }
+        });
+      });
+      this._redrawTies = (id2) => {
+        const touches = (l) => l.source === id2 || l.target === id2;
+        linkSel.filter(touches).attr("d", linkD);
+        hitSel.filter(touches).attr("d", linkD);
+        placeBadges(badgeSel.filter(touches));
+      };
       const nodeSel = this.gNodes.selectAll(".rc-graph-node").data(nodes, (d) => d.id).join(
         (enter) => {
           const g = enter.append("g").attr("class", "rc-graph-node").attr("transform", (d) => {
@@ -29353,7 +29893,13 @@ var RareCharts = (() => {
       );
       nodeSel.select(".rc-graph-node-ring").attr("r", (d) => nodeR(d) + 4);
       nodeSel.select(".rc-graph-node-circle").attr("r", (d) => nodeR(d)).attr("fill", fillOf).attr("stroke", strokeOf);
-      nodeSel.select(".rc-graph-node-label").attr("y", (d) => nodeR(d) + 5).text((d) => d.label ?? d.id);
+      const room = this._labelRoom;
+      nodeSel.select(".rc-graph-node-ring").attr("opacity", 0);
+      nodeSel.select(".rc-graph-node-label").attr("y", (d) => nodeR(d) + 5).each(function(d) {
+        const full = d.label ?? d.id;
+        if (room) fitTextNode(this, full, room);
+        else this.textContent = full;
+      });
       nodeSel.select(".rc-graph-node-icon").attr("d", (d) => this._nodeIcons?.[d.group] ?? null).attr("fill", (d) => isDark(d) ? t.bg ?? "#ffffff" : t.text).attr("transform", (d) => {
         const s2 = nodeR(d) * 1.24 / 24;
         return `translate(${-12 * s2},${-12 * s2}) scale(${s2})`;
@@ -29371,19 +29917,23 @@ var RareCharts = (() => {
         return p ? `translate(${p.x},${p.y})` : null;
       }).style("opacity", (d) => d._ctx ? 0.55 : 1);
       if (o.draggable !== false) {
-        nodeSel.call(this._dragBehavior(positions, linkSel, linkD));
+        nodeSel.call(this._dragBehavior(positions));
       }
       nodeSel.on("mouseover", (event, d) => {
         select_default2(event.currentTarget).select(".rc-graph-node-ring").attr("stroke", t.accent).attr("opacity", 0.5);
-        const nodeLinks = links.filter((l) => l.source === d.id || l.target === d.id);
+        if (this._tooltip.isPinned) return;
+        this._showDetails({ node: d });
+        const nodeLinks = allTies.filter((l) => l.source === d.id || l.target === d.id);
         const html2 = o.tooltipFormat ? o.tooltipFormat({ node: d, links: nodeLinks }) : this._defaultTooltip(d, nodeLinks);
         const [mx, my] = pointer_default(event, this.container);
         this._tooltip.show(mx, my, html2);
         this._highlight(d, nodeSel, linkSel);
       }).on("mouseout", (event) => {
         select_default2(event.currentTarget).select(".rc-graph-node-ring").attr("opacity", 0);
+        if (this._tooltip.isPinned) return;
         this._tooltip.hide();
         this._highlight(null, nodeSel, linkSel);
+        this._showDetails(null);
       });
       nodeSel.on("contextmenu", (event, d) => {
         if (this._view !== "ego" || d.id === this._root) return;
@@ -29403,45 +29953,54 @@ var RareCharts = (() => {
       });
       const showSectors = o.sectorLabels === true && (sectors?.length ?? 0) > 1;
       this.gSectors.selectAll(".rc-graph-sector-label").data(showSectors ? sectors : [], (d) => d.key).join("text").attr("class", "rc-graph-sector-label").attr("x", (d) => d.x).attr("y", (d) => d.y).attr("text-anchor", (d) => Math.cos(d.angle) > 0.35 ? "start" : Math.cos(d.angle) < -0.35 ? "end" : "middle").attr("dominant-baseline", "middle").attr("fill", t.muted).style("pointer-events", "none").text((d) => d.key);
-      const note = this._view === "ego" && this._hiddenCount > 0 ? [`+${this._hiddenCount} more \u2014 enlarge the chart or recenter to reveal`] : [];
-      this.gRoot.selectAll(".rc-graph-note").data(note).join("text").attr("class", "rc-graph-note").attr("x", 104).attr("y", H - 14).attr("fill", t.muted).style("cursor", "pointer").attr("role", "button").attr("tabindex", 0).text((d) => d).on("click", () => this._toggleOverflow()).on("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          this._toggleOverflow();
-        }
-      });
+      if (this._overflowNoteEl) {
+        const n = this._view === "ego" ? this._hiddenCount : 0;
+        this._overflowNoteEl.hidden = !n;
+        this._overflowNoteEl.textContent = n ? `+${n} more` : "";
+        this._overflowNoteEl.title = n ? `${n} more node${n === 1 ? "" : "s"} did not fit \u2014 open full screen, or pick one to recenter on it` : "";
+      }
       this._renderOverflow();
       const rowLabels = this._view === "path" && this._rows?.length ? this._rows : [];
-      this.gRoot.selectAll(".rc-graph-row-label").data(rowLabels, (d, i) => i).join("text").attr("class", "rc-graph-row-label").attr("x", 8).attr("y", (d) => d.y + 3).attr("fill", t.muted).text((d) => `${d.hops} hop${d.hops !== 1 ? "s" : ""}${d.shortest ? " \xB7 shortest" : ""}`);
-      const hiddenNote = this._view === "ego" && this._hidden.size > 0 ? [`${this._hidden.size} hidden \xB7 restore`] : [];
-      this.gRoot.selectAll(".rc-graph-hidden-note").data(hiddenNote).join("text").attr("class", "rc-graph-hidden-note").attr("x", W - 10).attr("y", H - 8).attr("text-anchor", "end").attr("fill", t.muted).style("cursor", "pointer").text((d) => d).on("click", () => {
-        this._hidden.clear();
-        this.render();
-      });
+      this.gRoot.selectAll(".rc-graph-row-label").data(rowLabels, (d, i) => i).join("text").attr("class", "rc-graph-row-label").attr("x", (d) => d.x ?? 8).attr("y", (d) => d.direct ? d.y - 10 : d.y - (o.nodeRadius ?? 22) - 8).attr("text-anchor", (d) => d.x != null ? "middle" : "start").attr("fill", t.muted).text((d) => `${d.hops} hop${d.hops !== 1 ? "s" : ""}${d.shortest ? " \xB7 shortest" : ""}`);
+      if (this._hiddenNoteEl) {
+        const n = this._view === "ego" ? this._hidden.size : 0;
+        this._hiddenNoteEl.hidden = !n;
+        this._hiddenNoteEl.textContent = n ? `${n} hidden \xB7 restore` : "";
+      }
       if (this._view === "cluster") this._legendEl.innerHTML = "";
       else this._renderLegend(typesInUse, t);
     }
     // ─── Node dragging ────────────────────────────────────────────────────────
-    _dragBehavior(positions, linkSel, linkD) {
+    _dragBehavior(positions) {
       const self = this;
-      return drag_default().clickDistance(5).on("start", function() {
+      const SLOP = 6;
+      return drag_default().clickDistance(5).subject((event, d) => {
+        const p = positions.get(d.id) ?? { x: 0, y: 0 };
+        return { x: p.x, y: p.y, x0: p.x, y0: p.y };
+      }).on("start", function() {
         select_default2(this).style("cursor", "grabbing");
       }).on("drag", function(event, d) {
         const p = positions.get(d.id);
         if (!p) return;
+        const s2 = event.subject;
+        if (!s2.moved && Math.hypot(event.x - s2.x0, event.y - s2.y0) < SLOP) return;
+        s2.moved = true;
         p.x = event.x;
         p.y = event.y;
         self._manual.set(d.id, { x: event.x, y: event.y });
         select_default2(this).attr("transform", `translate(${event.x},${event.y})`);
-        linkSel.filter((l) => l.source === d.id || l.target === d.id).attr("d", linkD);
+        self._redrawTies?.(d.id);
       }).on("end", function() {
         select_default2(this).style("cursor", "pointer");
       });
     }
     // ─── Focus + context: highlight the hovered neighborhood, fade the rest ────
+    // Node fades go through the `opacity` *style*: the enter/update transition
+    // sets that style, and a style beats the presentation attribute — fading
+    // via attr('opacity') silently did nothing.
     _highlight(node, nodeSel, linkSel) {
       if (!node) {
-        nodeSel.attr("opacity", 1);
+        nodeSel.style("opacity", (d) => d._ctx ? 0.55 : 1);
         linkSel.attr("stroke-opacity", (l) => this._linkOpacity?.(l) ?? 0.7);
         return;
       }
@@ -29450,8 +30009,13 @@ var RareCharts = (() => {
         if (l.source === node.id) near.add(l.target);
         if (l.target === node.id) near.add(l.source);
       });
-      nodeSel.attr("opacity", (d) => near.has(d.id) ? 1 : 0.25);
+      nodeSel.style("opacity", (d) => near.has(d.id) ? 1 : 0.25);
       linkSel.attr("stroke-opacity", (l) => l.source === node.id || l.target === node.id ? 1 : 0.08);
+    }
+    // A single tie: it and its two endpoints stay, everything else fades.
+    _highlightTie(tie, nodeSel, linkSel) {
+      nodeSel.style("opacity", (d) => d.id === tie.source || d.id === tie.target ? 1 : 0.25);
+      linkSel.attr("stroke-opacity", (l) => l.id === tie.id ? 1 : 0.08);
     }
     // ─── Semantic zoom: zooming out of ego = cluster overview, and back ────────
     _maybeSemanticZoom(k2) {
@@ -29602,6 +30166,7 @@ var RareCharts = (() => {
       if (this.options.breadcrumbs === false || this._history.length < 2) {
         this._breadcrumbsEl.hidden = true;
         this._breadcrumbsEl.replaceChildren();
+        this._refitIfResized();
         return;
       }
       this._breadcrumbsEl.hidden = false;
@@ -29621,6 +30186,7 @@ var RareCharts = (() => {
         });
         this._breadcrumbsEl.appendChild(button);
       });
+      this._refitIfResized();
     }
     _historyLabel(state) {
       if (state.view === "cluster") return "Overview";
@@ -29676,6 +30242,46 @@ var RareCharts = (() => {
       ${footer}
     </div>`;
     }
+    // Tie tooltip: endpoints, type, then whatever the payload carries — label,
+    // value, period, and `sources` (posts proving the tie) as links, which is
+    // why a clicked tie pins its tooltip. A pair collapsed under a +N badge
+    // lists every tie it stands for.
+    _defaultLinkTooltip(link3, source, target) {
+      const t = this.theme;
+      const esc3 = escapeHtml;
+      const name = (n) => esc3(n.label ?? n.id);
+      const ties = link3._siblings ?? [link3];
+      const typeRow = (l) => {
+        const cfg = this._linkTypes[l.type ?? "default"] ?? { color: t.muted };
+        return `<span style="color:${cfg.color};font-size:10px;text-transform:uppercase;
+        letter-spacing:0.06em">${esc3(cfg.label ?? l.type ?? "connection")}</span>`;
+      };
+      const detail = (l) => {
+        const rows = [];
+        if (l.label) rows.push(`<div>${esc3(l.label)}</div>`);
+        if (l.value != null && l.value !== "") {
+          const v2 = typeof l.value === "number" ? l.value.toLocaleString() : l.value;
+          rows.push(`<div style="color:${t.muted};font-size:11px">${esc3(v2)}</div>`);
+        }
+        if (l.start != null || l.end != null) {
+          const period2 = [l.start, l.end].filter((v2) => v2 != null && v2 !== "").map(esc3).join(" \u2013 ");
+          rows.push(`<div style="color:${t.muted};font-size:11px">${period2}</div>`);
+        }
+        const sources = Array.isArray(l.sources) ? l.sources : [];
+        if (sources.length) {
+          rows.push(`<div style="margin-top:4px;font-size:11px">${sources.map((src) => {
+            const url = typeof src === "string" ? src : src?.url;
+            const title = typeof src === "string" ? src : src?.title ?? src?.url;
+            return safeUrl(url) ? `<div><a href="${esc3(url)}" target="_blank" rel="noopener noreferrer">${esc3(title)}</a></div>` : `<div>${esc3(title ?? "")}</div>`;
+          }).join("")}</div>`);
+        }
+        return rows.join("");
+      };
+      return `<div style="max-width:300px">
+      <div style="font-weight:bold;margin-bottom:2px">${name(source)} \u2192 ${name(target)}</div>
+      ${ties.map((l) => `<div style="margin-top:4px">${typeRow(l)}${detail(l)}</div>`).join("")}
+    </div>`;
+    }
     // ─── Internals ────────────────────────────────────────────────────────────
     _requireSource() {
       if (!this._source) {
@@ -29693,6 +30299,8 @@ var RareCharts = (() => {
     }
     // ─── Cleanup ──────────────────────────────────────────────────────────────
     destroy() {
+      if (this._onFullscreenChange) document.removeEventListener("fullscreenchange", this._onFullscreenChange);
+      if (this._onFullscreenKey) document.removeEventListener("keydown", this._onFullscreenKey);
       this._tooltip?.destroy();
       this._tooltip = null;
       super.destroy();
@@ -30156,6 +30764,522 @@ var RareCharts = (() => {
     }
     destroy() {
       this._tooltip?.hide?.();
+      super.destroy();
+    }
+  };
+
+  // assets/charts/src/core/sankey.js
+  function sankeyLayout({ nodes = [], links = [] } = {}, {
+    width = 600,
+    height = 400,
+    nodeWidth = 12,
+    nodePadding = 12,
+    align = "justify",
+    sort: sort2 = null,
+    iterations: iterations2 = 6
+  } = {}) {
+    const N = nodes.map((data, index3) => ({
+      id: String(data.id),
+      data,
+      index: index3,
+      sourceLinks: [],
+      targetLinks: []
+    }));
+    const byId = new Map(N.map((n) => [n.id, n]));
+    const L = links.map((data, index3) => {
+      const source = byId.get(String(data.source));
+      const target = byId.get(String(data.target));
+      if (!source || !target) {
+        throw new Error(`RareCharts.Sankey: link "${data.id ?? index3}" references a missing node`);
+      }
+      const l = { id: data.id ?? String(index3), data, index: index3, source, target, value: +data.value };
+      source.sourceLinks.push(l);
+      target.targetLinks.push(l);
+      return l;
+    });
+    assertAcyclic(N);
+    const sum4 = (arr) => arr.reduce((s2, l) => s2 + l.value, 0);
+    N.forEach((n) => {
+      n.value = Math.max(sum4(n.sourceLinks), sum4(n.targetLinks));
+    });
+    const order = topoOrder(N);
+    N.forEach((n) => {
+      n.depth = 0;
+      n.height = 0;
+    });
+    order.forEach((n) => n.sourceLinks.forEach((l) => {
+      l.target.depth = Math.max(l.target.depth, n.depth + 1);
+    }));
+    order.slice().reverse().forEach((n) => n.targetLinks.forEach((l) => {
+      l.source.height = Math.max(l.source.height, n.height + 1);
+    }));
+    const maxDepth2 = N.reduce((m3, n) => Math.max(m3, n.depth), 0);
+    N.forEach((n) => {
+      let layer;
+      if (align === "left") layer = n.depth;
+      else if (align === "right") layer = maxDepth2 - n.height;
+      else if (align === "center") {
+        layer = n.targetLinks.length ? n.depth : n.sourceLinks.length ? Math.min(...n.sourceLinks.map((l) => l.target.depth)) - 1 : 0;
+      } else {
+        layer = n.sourceLinks.length ? n.depth : maxDepth2;
+      }
+      const manual = n.data.column;
+      n.layer = Number.isInteger(manual) && manual >= 0 ? manual : Math.max(0, layer);
+    });
+    const columnsCount = N.reduce((m3, n) => Math.max(m3, n.layer + 1), 0);
+    const columns = Array.from({ length: columnsCount }, () => []);
+    N.forEach((n) => columns[n.layer].push(n));
+    const sortColumn = (col) => {
+      if (typeof sort2 === "function") col.sort((a4, b) => sort2(a4.data, b.data) || a4.index - b.index);
+      else if (sort2 === "value") col.sort((a4, b) => b.value - a4.value || a4.index - b.index);
+      else if (sort2 === "auto") col.sort((a4, b) => a4.y0 - b.y0 || a4.index - b.index);
+      else col.sort((a4, b) => a4.index - b.index);
+    };
+    const step = columnsCount > 1 ? (width - nodeWidth) / (columnsCount - 1) : 0;
+    N.forEach((n) => {
+      n.x0 = columnsCount > 1 ? n.layer * step : (width - nodeWidth) / 2;
+      n.x1 = n.x0 + nodeWidth;
+    });
+    const maxPerColumn = columns.reduce((m3, c6) => Math.max(m3, c6.length), 0);
+    const py = maxPerColumn > 1 ? Math.min(nodePadding, height / (maxPerColumn - 1) / 2) : 0;
+    const ky2 = columns.reduce((k2, col) => {
+      const total = col.reduce((s2, n) => s2 + n.value, 0);
+      if (!total) return k2;
+      return Math.min(k2, (height - (col.length - 1) * py) / total);
+    }, Infinity);
+    const kyFinal = Number.isFinite(ky2) && ky2 > 0 ? ky2 : 0;
+    columns.forEach((col) => {
+      sortColumn(col);
+      const used = col.reduce((s2, n) => s2 + n.value * kyFinal, 0) + (col.length - 1) * py;
+      let y4 = Math.max(0, (height - used) / 2);
+      col.forEach((n) => {
+        n.y0 = y4;
+        n.y1 = y4 + n.value * kyFinal;
+        y4 = n.y1 + py;
+      });
+    });
+    const centre = (n) => (n.y0 + n.y1) / 2;
+    const relax = (cols, alpha, incoming) => {
+      cols.forEach((col) => {
+        col.forEach((n) => {
+          const ls = incoming ? n.targetLinks : n.sourceLinks;
+          if (!ls.length) return;
+          let w = 0, acc = 0;
+          ls.forEach((l) => {
+            const other = incoming ? l.source : l.target;
+            acc += centre(other) * l.value;
+            w += l.value;
+          });
+          if (!w) return;
+          const dy = (acc / w - centre(n)) * alpha;
+          n.y0 += dy;
+          n.y1 += dy;
+        });
+        if (sort2 === "auto") sortColumn(col);
+        resolveCollisions(col, py, height);
+      });
+    };
+    for (let i = 0; i < iterations2; i++) {
+      const alpha = Math.pow(0.99, i);
+      const beta = Math.max(1 - alpha, (i + 1) / iterations2);
+      relax(columns.slice(1), beta, true);
+      relax(columns.slice(0, -1).reverse(), beta, false);
+    }
+    N.forEach((n) => {
+      n.sourceLinks.sort((a4, b) => a4.target.y0 - b.target.y0 || a4.index - b.index);
+      n.targetLinks.sort((a4, b) => a4.source.y0 - b.source.y0 || a4.index - b.index);
+    });
+    L.forEach((l) => {
+      l.width = l.value * kyFinal;
+    });
+    N.forEach((n) => {
+      let y4 = n.y0;
+      n.sourceLinks.forEach((l) => {
+        l.y0 = y4 + l.width / 2;
+        y4 += l.width;
+      });
+      y4 = n.y0;
+      n.targetLinks.forEach((l) => {
+        l.y1 = y4 + l.width / 2;
+        y4 += l.width;
+      });
+    });
+    return { nodes: N, links: L, columns: columnsCount, ky: kyFinal };
+  }
+  function resolveCollisions(col, py, height) {
+    let y4 = 0;
+    col.forEach((n) => {
+      const dy = y4 - n.y0;
+      if (dy > 0) {
+        n.y0 += dy;
+        n.y1 += dy;
+      }
+      y4 = n.y1 + py;
+    });
+    const overflow = y4 - py - height;
+    if (overflow > 0) {
+      y4 = height;
+      for (let i = col.length - 1; i >= 0; i--) {
+        const n = col[i];
+        const dy = n.y1 - y4;
+        if (dy > 0) {
+          n.y0 -= dy;
+          n.y1 -= dy;
+        }
+        y4 = n.y0 - py;
+      }
+    }
+  }
+  function topoOrder(N) {
+    const indeg = new Map(N.map((n) => [n, n.targetLinks.length]));
+    const queue = N.filter((n) => indeg.get(n) === 0);
+    const out = [];
+    while (queue.length) {
+      const n = queue.shift();
+      out.push(n);
+      n.sourceLinks.forEach((l) => {
+        indeg.set(l.target, indeg.get(l.target) - 1);
+        if (indeg.get(l.target) === 0) queue.push(l.target);
+      });
+    }
+    return out;
+  }
+  function assertAcyclic(N) {
+    const state = /* @__PURE__ */ new Map();
+    const stack = [];
+    const visit = (n) => {
+      state.set(n, 1);
+      stack.push(n);
+      for (const l of n.sourceLinks) {
+        const t = l.target;
+        if (state.get(t) === 1) {
+          const from = stack.indexOf(t);
+          const cycle = [...stack.slice(from), t].map((x4) => x4.id).join(" \u2192 ");
+          throw new Error(`RareCharts.Sankey: links form a cycle (${cycle}); a sankey must be acyclic`);
+        }
+        if (!state.get(t)) visit(t);
+      }
+      stack.pop();
+      state.set(n, 2);
+    };
+    N.forEach((n) => {
+      if (!state.get(n)) visit(n);
+    });
+  }
+
+  // assets/charts/src/charts/Sankey.js
+  var esc2 = (v2) => String(v2).replace(/[&<>"']/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c6]);
+  var Sankey = class extends Chart {
+    constructor(selector, options = {}) {
+      const legend = options.legend ?? (options.linkColor === "type" && options.linkTypes ? Object.entries(options.linkTypes).map(([type2, cfg]) => ({
+        label: cfg.label ?? type2,
+        color: cfg.color,
+        type: "bar"
+      })) : void 0);
+      super(selector, {
+        height: 400,
+        margin: { top: 8, right: 8, bottom: 8, left: 8 },
+        ...options,
+        ...legend ? { legend } : {}
+      });
+      this._baseHeight = this.options.height;
+      this._nodes = [];
+      this._links = [];
+      this._didAnimateIn = false;
+      this._uid = Math.random().toString(36).slice(2, 8);
+      this._tooltip = new Tooltip(this.container, this.theme);
+      this._initSVG();
+    }
+    // ─── Data ─────────────────────────────────────────────────────────────────
+    setData(data = {}) {
+      const { nodes: rawNodes, links: rawLinks } = normalizeLinkData(data);
+      const links = [];
+      rawLinks.forEach((l) => {
+        const v2 = +l.value;
+        if (l.value == null || l.value === "" || !Number.isFinite(v2) || v2 <= 0) {
+          console.warn(`RareCharts.Sankey: link ${l.source} \u2192 ${l.target} has no positive value \u2014 dropped`);
+          return;
+        }
+        links.push({ ...l, value: v2 });
+      });
+      let nodes;
+      if (rawNodes.length) {
+        nodes = rawNodes.map((n) => ({ ...n, id: String(n.id) }));
+        const known = new Set(nodes.map((n) => n.id));
+        for (let i = links.length - 1; i >= 0; i--) {
+          const l = links[i];
+          if (!known.has(l.source) || !known.has(l.target)) {
+            console.warn(`RareCharts.Sankey: link ${l.source} \u2192 ${l.target} references an unknown node \u2014 dropped`);
+            links.splice(i, 1);
+          }
+        }
+      } else {
+        const seen = /* @__PURE__ */ new Map();
+        links.forEach((l) => [l.source, l.target].forEach((id2) => {
+          if (!seen.has(id2)) seen.set(id2, { id: id2, label: id2 });
+        }));
+        nodes = [...seen.values()];
+      }
+      const merged = /* @__PURE__ */ new Map();
+      links.forEach((l) => {
+        const key = `${l.source}\u2192${l.target}|${l.type ?? ""}`;
+        const prev = merged.get(key);
+        if (prev) {
+          console.warn(`RareCharts.Sankey: repeated link ${l.source} \u2192 ${l.target}${l.type ? ` (${l.type})` : ""} \u2014 values summed`);
+          prev.value += l.value;
+        } else {
+          merged.set(key, { ...l });
+        }
+      });
+      this._nodes = nodes;
+      this._links = [...merged.values()];
+      sankeyLayout({ nodes: this._nodes, links: this._links }, { width: 100, height: 100, iterations: 0 });
+      this._didAnimateIn = false;
+      this.render();
+      return this;
+    }
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    _initSVG() {
+      this.container.style.height = this.options.height + "px";
+      this.svg = select_default2(this.container).append("svg").attr("width", "100%").attr("height", "100%");
+      applySvgA11y(this.svg, this.options);
+      this._defs = this.svg.append("defs");
+      this.gRoot = this.svg.append("g").attr("class", "rc-sankey");
+      this.gLinks = this.gRoot.append("g").attr("class", "rc-sankey-links");
+      this.gNodes = this.gRoot.append("g").attr("class", "rc-sankey-nodes");
+      this.gLabels = this.gRoot.append("g").attr("class", "rc-sankey-labels");
+    }
+    // ─── Render ───────────────────────────────────────────────────────────────
+    _orientation() {
+      const o = this.options;
+      if (o.orientation === "horizontal" || o.orientation === "vertical") return o.orientation;
+      const w = this.container.clientWidth;
+      return w > 0 && w <= (o.mobileBreakpoint ?? 480) ? "vertical" : "horizontal";
+    }
+    render() {
+      const o = this.options;
+      const t = this.theme;
+      if (!this._links.length) {
+        [this.gLinks, this.gNodes, this.gLabels].forEach((g) => g.selectAll("*").remove());
+        this._renderTable([]);
+        return;
+      }
+      const vertical = this._orientation() === "vertical";
+      this._vertical = vertical;
+      const pre = sankeyLayout(
+        { nodes: this._nodes, links: this._links },
+        { width: 100, height: 100, iterations: 0, align: o.nodeAlign ?? "justify" }
+      );
+      const columnsEstimate = pre.columns;
+      const chromeH = (this._headerEl ? this._headerEl.offsetHeight + 8 : 0) + (this._footerEl ? this._footerEl.offsetHeight + 6 : 0) + this.margin.top + this.margin.bottom;
+      const targetH = vertical ? Math.max(200, columnsEstimate * (o.rowHeight ?? 140)) + chromeH : this._baseHeight;
+      if (this.options.height !== targetH) {
+        this.options.height = targetH;
+        this.container.style.height = targetH + "px";
+      }
+      const W = this.width + this.margin.left + this.margin.right;
+      const H = this.height + this.margin.top + this.margin.bottom;
+      if (W <= 0 || H <= 0) return;
+      const labelGap = 6;
+      const pad3 = 8;
+      const fmt = o.valueFormat ?? ((v2) => Number(v2).toLocaleString());
+      const labelText = (n) => o.showValues === false ? this._name(n) : `${this._name(n)} \xB7 ${fmt(n.value)}`;
+      let gutter = 0;
+      if (!vertical && o.labels !== false && pre.columns > 1) {
+        const probe = this.gLabels.append("text").attr("class", "rc-sankey-label");
+        const widest = pre.nodes.filter((n) => n.layer === pre.columns - 1).reduce((m3, n) => {
+          probe.text(labelText(n));
+          return Math.max(m3, probe.node().getComputedTextLength?.() ?? 0);
+        }, 0);
+        probe.remove();
+        gutter = widest ? Math.min(widest + labelGap * 2, W * 0.3) : 0;
+      }
+      const lane = vertical ? { x: pad3, y: 18, w: W - pad3 * 2, h: H - 36 } : { x: pad3, y: pad3, w: W - pad3 * 2 - gutter, h: H - pad3 * 2 };
+      const layout = sankeyLayout({ nodes: this._nodes, links: this._links }, {
+        width: vertical ? lane.h : lane.w,
+        height: vertical ? lane.w : lane.h,
+        nodeWidth: o.nodeWidth ?? 12,
+        nodePadding: o.nodePadding ?? 12,
+        align: o.nodeAlign ?? "justify",
+        sort: o.nodeSort ?? null,
+        iterations: o.iterations ?? 6
+      });
+      this._layout = layout;
+      const P = vertical ? (flow, cross2) => [lane.x + cross2, lane.y + flow] : (flow, cross2) => [lane.x + flow, lane.y + cross2];
+      const nodeRect = (n) => {
+        const [x06, y06] = P(n.x0, n.y0);
+        const [x12, y12] = P(n.x1, n.y1);
+        return { x: Math.min(x06, x12), y: Math.min(y06, y12), w: Math.abs(x12 - x06), h: Math.abs(y12 - y06) };
+      };
+      const bandPath2 = (l) => {
+        const [sx, sy] = P(l.source.x1, l.y0);
+        const [tx, ty] = P(l.target.x0, l.y1);
+        if (vertical) {
+          const my = (sy + ty) / 2;
+          return `M${sx},${sy}C${sx},${my} ${tx},${my} ${tx},${ty}`;
+        }
+        const mx = (sx + tx) / 2;
+        return `M${sx},${sy}C${mx},${sy} ${mx},${ty} ${tx},${ty}`;
+      };
+      const palette = t.colors ?? ["#888"];
+      const nodeColor = (n) => n.data.color ?? palette[n.index % palette.length];
+      const linkTypes = o.linkTypes ?? {};
+      const mode2 = o.linkColor ?? "source";
+      const gradId = (l) => `rc-sankey-grad-${this._uid}-${l.index}`;
+      const linkStroke = (l) => {
+        if (mode2 === "source") return nodeColor(l.source);
+        if (mode2 === "target") return nodeColor(l.target);
+        if (mode2 === "type") return linkTypes[l.data.type]?.color ?? t.muted;
+        if (mode2 === "gradient") return `url(#${gradId(l)})`;
+        return mode2;
+      };
+      this._defs.selectAll("linearGradient").remove();
+      if (mode2 === "gradient") {
+        layout.links.forEach((l) => {
+          const [sx, sy] = P(l.source.x1, l.y0);
+          const [tx, ty] = P(l.target.x0, l.y1);
+          const g = this._defs.append("linearGradient").attr("id", gradId(l)).attr("gradientUnits", "userSpaceOnUse").attr("x1", sx).attr("y1", sy).attr("x2", tx).attr("y2", ty);
+          g.append("stop").attr("offset", "0%").attr("stop-color", nodeColor(l.source));
+          g.append("stop").attr("offset", "100%").attr("stop-color", nodeColor(l.target));
+        });
+      }
+      const baseOpacity = o.linkOpacity ?? 0.45;
+      const animate = (o.animate ?? true) && !this._didAnimateIn;
+      const dur = animate ? motionDuration(o.duration ?? 600) : 0;
+      const ease = resolveEase(o.ease ?? "cubicOut");
+      this._didAnimateIn = true;
+      const linkSel = this.gLinks.selectAll(".rc-sankey-link").data(layout.links, (l) => l.id).join("path").attr("class", "rc-sankey-link").attr("fill", "none").attr("d", bandPath2).attr("stroke", linkStroke).attr("stroke-width", (l) => Math.max(1, l.width)).attr("role", "img").attr("aria-label", (l) => `${this._name(l.source)} \u2192 ${this._name(l.target)}: ${fmt(l.value)}`).style("cursor", "pointer");
+      if (dur) {
+        linkSel.interrupt().attr("stroke-opacity", 0).transition().duration(dur).ease(ease).attr("stroke-opacity", baseOpacity);
+      } else {
+        linkSel.interrupt().attr("stroke-opacity", baseOpacity);
+      }
+      const nodeSel = this.gNodes.selectAll(".rc-sankey-node").data(layout.nodes, (n) => n.id).join("rect").attr("class", "rc-sankey-node").attr("x", (n) => nodeRect(n).x).attr("y", (n) => nodeRect(n).y).attr("width", (n) => Math.max(1, nodeRect(n).w)).attr("height", (n) => Math.max(1, nodeRect(n).h)).attr("fill", nodeColor).attr("tabindex", 0).attr("role", "img").attr("aria-label", (n) => `${this._name(n)}: ${fmt(n.value)}`).style("cursor", "pointer");
+      const minLabel = o.minLabelSize ?? 10;
+      const labelled = o.labels === false ? [] : layout.nodes.filter((n) => vertical ? nodeRect(n).w >= Math.max(minLabel, 24) : nodeRect(n).h >= minLabel);
+      const lastCol = layout.columns - 1;
+      const labelPos = (n) => {
+        const r = nodeRect(n);
+        if (vertical) {
+          if (n.layer === 0) return { x: r.x + r.w / 2, y: r.y - 6, anchor: "middle", base: "auto" };
+          if (n.layer === lastCol) return { x: r.x + r.w / 2, y: r.y + r.h + 12, anchor: "middle", base: "hanging" };
+          return { x: r.x + r.w / 2, y: r.y + r.h / 2, anchor: "middle", base: "middle" };
+        }
+        return { x: r.x + r.w + labelGap, y: r.y + r.h / 2, anchor: "start", base: "middle" };
+      };
+      const colStep = layout.columns > 1 ? (lane.w - (o.nodeWidth ?? 12)) / (layout.columns - 1) : lane.w / 2;
+      const labelRoom = (n) => vertical ? nodeRect(n).w + (o.nodePadding ?? 12) - 4 : n.layer === lastCol && layout.columns > 1 ? gutter - labelGap : colStep - (o.nodeWidth ?? 12) - labelGap * 2;
+      this.gLabels.selectAll(".rc-sankey-label").data(labelled, (n) => n.id).join("text").attr("class", "rc-sankey-label").attr("x", (n) => labelPos(n).x).attr("y", (n) => labelPos(n).y).attr("text-anchor", (n) => labelPos(n).anchor).attr("dominant-baseline", (n) => labelPos(n).base).attr("fill", t.text).attr("stroke", t.bg).attr("stroke-width", 3).attr("paint-order", "stroke").style("pointer-events", "none").each(function(n) {
+        fitTextNode(this, labelText(n), labelRoom(n));
+      });
+      const reset = () => {
+        linkSel.attr("stroke-opacity", baseOpacity);
+        nodeSel.style("opacity", 1);
+      };
+      const highlightNode = (n) => {
+        const touches = (l) => l.source === n || l.target === n;
+        linkSel.attr("stroke-opacity", (l) => touches(l) ? Math.min(1, baseOpacity + 0.35) : 0.12);
+        const near = /* @__PURE__ */ new Set([n]);
+        n.sourceLinks.forEach((l) => near.add(l.target));
+        n.targetLinks.forEach((l) => near.add(l.source));
+        nodeSel.style("opacity", (x4) => near.has(x4) ? 1 : 0.35);
+      };
+      const highlightLink = (l) => {
+        linkSel.attr("stroke-opacity", (x4) => x4 === l ? Math.min(1, baseOpacity + 0.4) : 0.12);
+        nodeSel.style("opacity", (x4) => x4 === l.source || x4 === l.target ? 1 : 0.35);
+      };
+      const pointer = (event) => pointer_default(event, this.container);
+      const centerOf = (el) => {
+        const b = el.getBoundingClientRect?.();
+        const c6 = this.container.getBoundingClientRect?.();
+        return b && c6 ? [b.x - c6.x + b.width / 2, b.y - c6.y + b.height / 2] : [0, 0];
+      };
+      nodeSel.on("mouseover", (event, n) => {
+        if (this._tooltip.isPinned) return;
+        const [mx, my] = pointer(event);
+        this._tooltip.show(mx, my, this._nodeHtml(n, fmt));
+        highlightNode(n);
+      }).on("mouseout", () => {
+        if (this._tooltip.isPinned) return;
+        this._tooltip.hide();
+        reset();
+      }).on("keydown", (event, n) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        const [mx, my] = centerOf(event.currentTarget);
+        highlightNode(n);
+        this._tooltip.pin(mx, my, this._nodeHtml(n, fmt), { onClose: reset });
+      });
+      linkSel.on("mouseover", (event, l) => {
+        if (this._tooltip.isPinned) return;
+        const [mx, my] = pointer(event);
+        this._tooltip.show(mx, my, this._linkHtml(l, fmt));
+        highlightLink(l);
+      }).on("mouseout", () => {
+        if (this._tooltip.isPinned) return;
+        this._tooltip.hide();
+        reset();
+      }).on("click", (event, l) => {
+        event.stopPropagation();
+        const [mx, my] = pointer(event);
+        highlightLink(l);
+        this._tooltip.pin(mx, my, this._linkHtml(l, fmt), { onClose: reset });
+      });
+      this._renderTable(layout.links, fmt);
+    }
+    // ─── Text ─────────────────────────────────────────────────────────────────
+    _name(n) {
+      return n.data.label ?? n.id;
+    }
+    _nodeHtml(n, fmt) {
+      const o = this.options;
+      if (o.tooltipFormat) {
+        return o.tooltipFormat({
+          node: n.data,
+          incoming: n.targetLinks.map((l) => l.data),
+          outgoing: n.sourceLinks.map((l) => l.data)
+        });
+      }
+      const t = this.theme;
+      const inV = n.targetLinks.reduce((s2, l) => s2 + l.value, 0);
+      const outV = n.sourceLinks.reduce((s2, l) => s2 + l.value, 0);
+      const row = (k2, v2) => `<div><span style="color:${t.muted}">${k2}</span> ${esc2(fmt(v2))}</div>`;
+      return `<div style="font-weight:bold;margin-bottom:2px">${esc2(this._name(n))}</div>
+      ${n.targetLinks.length ? row("in", inV) : ""}
+      ${n.sourceLinks.length ? row("out", outV) : ""}`;
+    }
+    _linkHtml(l, fmt) {
+      const o = this.options;
+      if (o.linkTooltipFormat) {
+        return o.linkTooltipFormat({ link: l.data, source: l.source.data, target: l.target.data });
+      }
+      const t = this.theme;
+      const out = l.source.sourceLinks.reduce((s2, x4) => s2 + x4.value, 0);
+      const share = out ? ` \xB7 ${Math.round(l.value / out * 100)}% of ${esc2(this._name(l.source))}` : "";
+      const type2 = l.data.type ? `<div style="color:${t.muted};font-size:11px">${esc2(o.linkTypes?.[l.data.type]?.label ?? l.data.type)}</div>` : "";
+      const label = l.data.label ? `<div>${esc2(l.data.label)}</div>` : "";
+      return `<div style="font-weight:bold;margin-bottom:2px">${esc2(this._name(l.source))} \u2192 ${esc2(this._name(l.target))}</div>
+      <div>${esc2(fmt(l.value))}<span style="color:${t.muted};font-size:11px">${share}</span></div>
+      ${type2}${label}`;
+    }
+    // Visually hidden table: the flows as data, for screen readers.
+    _renderTable(links, fmt = (v2) => v2) {
+      this._tableEl?.remove();
+      this._tableEl = null;
+      if (this.options.tableFallback === false || !links.length) return;
+      const table = document.createElement("table");
+      table.className = "rc-sr-only rc-sankey-table";
+      const caption = this.options.title ? `<caption>${esc2(this.options.title)}</caption>` : "";
+      table.innerHTML = `${caption}<thead><tr><th scope="col">From</th><th scope="col">To</th><th scope="col">Value</th></tr></thead>
+      <tbody>${links.map((l) => `<tr><td>${esc2(this._name(l.source))}</td><td>${esc2(this._name(l.target))}</td><td>${esc2(fmt(l.value))}</td></tr>`).join("")}</tbody>`;
+      this.container.appendChild(table);
+      this._tableEl = table;
+    }
+    // ─── Cleanup ──────────────────────────────────────────────────────────────
+    destroy() {
+      this._tooltip?.destroy();
+      this._tooltip = null;
+      this._tableEl?.remove();
       super.destroy();
     }
   };
