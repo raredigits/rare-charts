@@ -2,7 +2,7 @@
 
 A self-contained D3-based charting library for financial reporting, KPI dashboards, operational analytics, and relationship exploration. D3, Graphology, typography defaults, and chart CSS are bundled into one JavaScript file.
 
-Current version: **v0.9.8_4**
+Current version: **v0.9.8_4_1**
 
 ## Installation
 
@@ -15,7 +15,7 @@ Load the minified bundle from jsDelivr:
 For production, pin a release instead of using `latest`:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/raredigits/rare-charts@v0.9.8_4/rare-charts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/raredigits/rare-charts@v0.9.8_4_1/rare-charts.min.js"></script>
 ```
 
 The readable `rare-charts.js` bundle is also available. No separate D3 or CSS import is required. Initialize charts only after the container element and the library are available.
@@ -25,7 +25,7 @@ The readable `rare-charts.js` bundle is also available. No separate D3 or CSS im
 ```html
 <div id="my-chart"></div>
 
-<script src="https://cdn.jsdelivr.net/gh/raredigits/rare-charts@v0.9.8_4/rare-charts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/raredigits/rare-charts@v0.9.8_4_1/rare-charts.min.js"></script>
 <script>
   new RareCharts.Line('#my-chart', {
     title:    'Revenue',
