@@ -1,0 +1,1000 @@
+/* RareCharts — rare-charts.css
+   Structure, positioning and spacing; the bundle injects it into <head>.
+   Chart colours come from the theme (JS). The few host colours read here
+   (buttons, panels) all have fallbacks, so a page without Rare Styles works.
+   No fonts are loaded: the page supplies them (README, "Fonts"). */
+
+/* ─── Chart wrapper ──────────────────────────────────────────────────────── */
+
+.rc-chart {
+  /* Fira Sans / Cousine when the page has them (Rare Styles self-hosts both),
+     system fonts otherwise — the library loads no webfont (K-01). */
+  --rc-font-family: "Fira Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --rc-font-family-numeric: "Cousine", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --rc-font-size: 16px;
+  --rc-font-size-sm: 14px;
+  /* Spacing — the Rare Styles scale at its 16px unit, fixed, so a chart
+     looks the same with or without a host stylesheet (C-13). */
+  --rc-space-xs: 4px;
+  --rc-space-sm: 8px;
+  --rc-space-md: 16px;
+  --rc-space-lg: 32px;
+  /* Lin/Log switch fill — an explicit colour, not the page's --border-color,
+     which some hosts set to black (the label then disappears). */
+  --rc-scale-btn-fill: #ccc;
+  /* Set once: subtitle, legend, source, note and controls inherit it (C-14). */
+  font-family: var(--rc-font-family);
+  /* The header follows the card's width, not the window's (K-17): a narrow
+     card on a wide screen stacks it too. The card takes its width from its
+     parent, as a block, a grid cell or a stretched flex item does. */
+  container: rc-chart / inline-size;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* Keep the chart card as the outer clipping boundary for tooltips/overlays.
+     In-chart labels that need to extend past the SVG box use svg{overflow:visible}. */
+  overflow: hidden;
+}
+
+.rc-chart > .rc-chart-header { order: 0; }
+.rc-graph-breadcrumbs        { order: 1; }
+.rc-graph-legend             { order: 2; }
+.rc-mapflow-legend           { order: 2; }
+.rc-chart > svg              { order: 3; }
+.rc-chart > .rc-graph-scroll { order: 3; }
+.rc-chart > .rc-chart-navigator { order: 4; }
+.rc-chart > .rc-graph-details   { order: 4; }
+.rc-chart > .rc-chart-controls  { order: 5; }
+.rc-chart > .rc-chart-footer { order: 6; }
+
+.rc-chart > svg {
+  /* Small size is the chart-text default (axis ticks, labels, values). Charts
+     no longer set font-size inline; the few larger texts (donut/gauge center)
+     set their own. */
+  font-size: var(--rc-font-size-sm);
+  overflow: visible; /* otherwise end labels and crosshair dots are clipped */
+  /* Let the plot shrink inside the fixed-height card so a tall footer (a long
+     source line or a multi-sentence note) never overflows and gets clipped —
+     without min-height:0 a flex item refuses to shrink below its content. */
+  min-height: 0;
+}
+
+/* Graph flow view with `minWidth`: the drawing scrolls sideways inside its
+   own wrapper (Graph adds it); the header, legend, navigator, details panel
+   and footer stay put (D5). It takes the space the bare svg would. */
+.rc-chart > .rc-graph-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.rc-graph-scroll > svg {
+  flex: 0 0 auto;
+  font-size: var(--rc-font-size-sm);
+  overflow: visible;
+}
+
+.rc-chart-header,
+.rc-chart-subtitle,
+.rc-legend,
+.rc-chart-source {
+  color: var(--primary-color, currentColor);
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+
+.rc-chart-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title range"
+    "subtitle range"
+    "legend legend";
+  column-gap: var(--rc-space-md);
+  row-gap: var(--rc-space-xs);
+  position: relative;
+  user-select: none;
+}
+
+/* font-family and size repeated: host heading rules target the <h5> itself,
+   and without a host stylesheet it is the UA's 0.83em. */
+.rc-chart-title {
+  grid-area: title;
+  min-width: 0;
+  margin: 0;
+  font-family: var(--rc-font-family);
+  font-size: var(--rc-font-size);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The subtitle wraps — it often carries the chart's one sentence of
+   context, and an ellipsis cut it mid-thought. The title stays on one line. */
+.rc-chart-subtitle {
+  grid-area: subtitle;
+  min-width: 0;
+  font-size: var(--rc-font-size-sm);
+  line-height: 1.2em;
+  margin: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+/* Each header part's cell again, at three classes: a host rule for every
+   element in a block (Rare Styles' `.sidenote-wrapper :not(:first-child)`
+   spans each one over five columns) would otherwise open empty columns,
+   gaps and all, and squeeze the title into an ellipsis. */
+.rc-chart > .rc-chart-header > .rc-chart-title     { grid-area: title; }
+.rc-chart > .rc-chart-header > .rc-chart-subtitle  { grid-area: subtitle; }
+.rc-chart > .rc-chart-header > .rc-chart-range-row { grid-area: range; }
+.rc-chart > .rc-chart-header > .rc-legend          { grid-area: legend; }
+
+/* ─── Footer ─────────────────────────────────────────────────────────────── */
+
+.rc-chart-footer {
+  user-select: none;
+}
+
+/* A <cite>: inline by default, so without a host stylesheet the margin and
+   the one-line ellipsis did nothing — make it a block here. */
+.rc-chart-source {
+  display: block;
+  font-style: italic;
+  font-size: var(--rc-font-size-sm);
+  font-weight: initial;
+  margin: var(--rc-space-sm) 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+/* Links inside the source line — inherit the source text color, set apart by
+   the underline (so they adapt to light/dark theme automatically). */
+.rc-chart-source a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Multi-part (array) source: let it wrap so several attributions/links all
+   stay visible instead of being cut off by the single-line ellipsis. */
+.rc-chart-source--rich {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Note — disclaimers, caveats, editorial context. Sits below the source.
+   Wraps freely (unlike source) since it can be a sentence or two; color is
+   set from theme.muted in JS so it reads as secondary to the source. */
+.rc-chart-note {
+  font-size: var(--rc-font-size-sm);
+  font-weight: initial;
+  line-height: 1.4;
+  margin: var(--rc-space-xs) 0 var(--rc-space-sm);
+  text-align: left;
+  /* Long words / URLs break instead of pushing the note past the card edge. */
+  overflow-wrap: anywhere;
+}
+
+.rc-chart-source + .rc-chart-note {
+  margin-top: 0;
+}
+
+.rc-chart-navigator {
+  width: auto;
+}
+
+.rc-chart-navigator svg { overflow: visible; }  /* brush handles at a 0px margin stay whole */
+/* The page's own details panel: host element rules (h4, p…) beat the font
+   the panel inherits, so it is set on every element inside. */
+.rc-graph-details,
+.rc-graph-details * { font-family: var(--rc-font-family); }
+
+.rc-chart-range-row {
+  grid-area: range;
+  justify-self: end;
+  align-self: start;
+  min-width: max-content;
+  padding-right: 60px;
+  position: relative;
+}
+
+/* Lin/Log switch: pinned right, in the 60px the row keeps free above the
+   Y-axis labels, level with the first line of timeframes — which stay where
+   they are. Without timeframes the row holds just the button, at the right. */
+.rc-chart-range-row--scale .rc-scale-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.rc-chart-range-row--scale-only {
+  padding-right: 0;
+}
+
+/* No Y-axis gutter on the right (Map, MapFlow, Graph): flush to the edge. */
+.rc-chart-range-row--flush {
+  padding-right: 0;
+}
+
+/* ─── Legend ─────────────────────────────────────────────────────────────── */
+
+.rc-legend {
+  grid-area: legend;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  /* wrapped lines sit close; items keep their horizontal spacing */
+  column-gap: var(--rc-space-md);
+  row-gap: 2px;
+  line-height: 1.3;
+  font-size: var(--rc-font-size-sm);
+  user-select: none;
+}
+
+/* A card 460px wide or narrower stacks its header: the buttons move under the
+   subtitle (K-17). The old breakpoint was the window's 768px, where the
+   narrowest card it kept side by side on the docs site is 473px wide. */
+@container rc-chart (max-width: 460px) {
+  .rc-chart-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "title"
+      "subtitle"
+      "range"
+      "legend";
+  }
+
+  .rc-chart-range-row {
+    justify-self: start;
+    min-width: 0;
+    padding-right: 0;
+  }
+
+  /* Narrow card: the timeframes keep their place on the left and wrap
+     before the Lin/Log button, which stays pinned right. */
+  .rc-chart-range-row--scale {
+    justify-self: stretch;
+    padding-right: 60px;
+  }
+
+  .rc-chart-range-row--scale-only {
+    justify-self: end;
+  }
+}
+
+.rc-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* Text-like chart controls: no button chrome in any state.
+   A host stylesheet may style every <button> — Rare Styles' `button:hover`
+   adds a border and background, and its element+pseudo-class selector beats
+   a single class. Doubling the class (and listing the states) wins without
+   !important; only the cursor changes on hover. Keyboard focus keeps its
+   outline (rule below). */
+.rc-graph-legend-item.rc-graph-legend-item,
+.rc-graph-legend-reset.rc-graph-legend-reset,
+.rc-graph-breadcrumbs.rc-graph-breadcrumbs button,
+.rc-graph-tools .rc-graph-note.rc-graph-note,
+.rc-graph-tools .rc-graph-hidden-note.rc-graph-hidden-note {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.rc-graph-legend-item.rc-graph-legend-item:hover,
+.rc-graph-legend-item.rc-graph-legend-item:active,
+.rc-graph-legend-reset.rc-graph-legend-reset:hover,
+.rc-graph-legend-reset.rc-graph-legend-reset:active,
+.rc-graph-breadcrumbs.rc-graph-breadcrumbs button:hover,
+.rc-graph-breadcrumbs.rc-graph-breadcrumbs button:active,
+.rc-graph-tools .rc-graph-note.rc-graph-note:hover,
+.rc-graph-tools .rc-graph-hidden-note.rc-graph-hidden-note:hover {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Graph legend items are controls, not static labels. */
+.rc-graph-legend-item,
+.rc-graph-legend-reset {
+  appearance: none;
+  border: 0;
+  padding: 2px 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.rc-graph-legend-item:not(:disabled),
+.rc-graph-legend-reset {
+  cursor: pointer;
+}
+
+.rc-graph-legend-item:disabled { cursor: default; }
+
+.rc-graph-legend-item:focus-visible,
+.rc-graph-legend-reset:focus-visible,
+.rc-graph-breadcrumbs button:focus-visible,
+.rc-graph-overflow button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.rc-graph-legend-reset {
+  text-decoration: underline;
+  opacity: 0.7;
+}
+
+.rc-graph-breadcrumbs {
+  display: block;
+  padding: 4px 0;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rc-graph-breadcrumbs[hidden],
+.rc-graph-overflow[hidden] { display: none; }
+
+.rc-graph-breadcrumbs button {
+  /* inline: a site stylesheet may make every <button> a block (Rare Styles
+     does, Q-04) — the trail must stay on one line */
+  display: inline;
+  width: auto;
+  margin: 0;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rc-graph-breadcrumbs button:disabled {
+  cursor: default;
+  font-weight: bold;
+  opacity: 1;
+}
+
+.rc-graph-overflow {
+  position: absolute;
+  z-index: 4;
+  right: 8px;
+  bottom: 40px;
+  width: min(320px, calc(100% - 120px));
+  max-height: min(300px, 55%);
+  overflow: hidden;
+  padding: 12px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--primary-color, #111);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  font-size: 12px;
+}
+
+.rc-graph-overflow-title {
+  padding-right: 28px;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.rc-graph-overflow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.rc-graph-overflow-item {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  border-radius: 3px;
+  padding: 6px 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rc-graph-overflow-item:hover { background: rgba(127, 127, 127, 0.12); }
+/* list rows keep their hover tint, but never a host button border */
+.rc-graph-overflow .rc-graph-overflow-item.rc-graph-overflow-item:hover,
+.rc-graph-overflow .rc-graph-overflow-close.rc-graph-overflow-close:hover { border: 0; box-shadow: none; }
+
+.rc-graph-overflow-close {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  appearance: none;
+  border: 0;
+  padding: 2px 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Line — for line series */
+.rc-legend-line {
+  width: 16px;
+  height: 2px;
+  display: inline-block;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+/* Dashed line — for forecast / projected series */
+.rc-legend-line--dashed {
+  background-color: transparent;
+}
+
+/* Dot — for bar / donut / scatter */
+.rc-legend-dot {
+  width: var(--rc-space-sm);
+  height: var(--rc-space-sm);
+  display: inline-block;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Band — filled square for shaded ranges (confidence intervals, envelopes) */
+.rc-legend-band {
+  width: var(--rc-space-sm);
+  height: var(--rc-space-sm);
+  display: inline-block;
+  border-radius: 2px;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+/* ─── Tooltip ────────────────────────────────────────────────────────────── */
+/* Colours: Tooltip.js publishes theme.tooltip on the element as
+   --rc-tooltip-*; the fallbacks here are defaultTheme.tooltip, keep them in
+   step. Size, weight and spacing live here (B-03, C-23): a page rule that
+   outranks .rc-tooltip — .rc-chart .rc-tooltip — restyles any of it.
+   No line-height: the tooltip takes the page's. */
+
+.rc-tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: var(--rc-space-sm) var(--rc-space-md);
+  font-family: var(--rc-tooltip-font, var(--rc-font-family-numeric));
+  font-size: 13px;
+  color: var(--rc-tooltip-text, #000000);
+  background: var(--rc-tooltip-bg, #ffffff);
+  border: 1px solid var(--rc-tooltip-border, #e0e0e0);
+  box-shadow: var(--rc-tooltip-shadow, 0 2px 8px rgba(0,0,0,0.10));
+  opacity: 0;
+  transition: opacity 0.1s;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+/* Rows of the built-in tooltips (core/html.js); a tooltipFormat may use them.
+   The header names what is hovered: a date stays muted, a title bold —
+   theme.tooltip.header.text recolours both; an inline data colour wins. */
+.rc-tooltip-header {
+  color: var(--rc-tooltip-header-text, currentColor);
+}
+
+.rc-tooltip-header.rc-tooltip-muted {
+  color: var(--rc-tooltip-header-text, var(--rc-tooltip-muted, #666666));
+}
+
+.rc-tooltip-title {
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.rc-tooltip-title:last-child {
+  margin-bottom: 0;
+}
+
+.rc-tooltip-muted,
+.rc-tooltip-sub {
+  color: var(--rc-tooltip-muted, #666666);
+}
+
+.rc-tooltip-sub,
+.rc-tooltip-small {
+  font-size: 11px;
+}
+
+/* A category: a link type in its own colour, a node group muted */
+.rc-tooltip-kind {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rc-tooltip-section {
+  margin-top: var(--rc-space-xs);
+}
+
+/* Relation charts: a capped width; a long name wraps inside the box instead
+   of running past its edge (C-29). max-content: as wide as the widest line
+   up to the cap, wherever the pointer is — near the chart's right edge too. */
+.rc-tooltip-body {
+  width: max-content;
+  max-width: 280px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+/* TimeSeries: the value under the date */
+.rc-tooltip-value {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* theme.tooltip.header.bg: the header as a band across the top */
+.rc-tooltip--header-band .rc-tooltip-header {
+  background: var(--rc-tooltip-header-bg, transparent);
+  margin: calc(-1 * var(--rc-space-sm)) calc(-1 * var(--rc-space-md)) var(--rc-space-xs);
+  padding: var(--rc-space-xs) var(--rc-space-md);
+}
+
+.rc-tooltip.is-visible {
+  opacity: 0.9;
+}
+
+/* Pinned (opt-in, relation charts): stays put, takes pointer events so links
+   inside it work, wraps long content. Closes on outside click or Escape. */
+.rc-tooltip.is-pinned {
+  pointer-events: auto;
+  white-space: normal;
+  max-width: 320px;
+  opacity: 1;
+}
+
+/* Links (a tie's sources) in the tooltip's own colour, hover or pinned */
+.rc-tooltip a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ─── SVG elements ───────────────────────────────────────────────────────── */
+
+/* Zero baseline — visible only when domain crosses zero */
+.rc-zero-line {
+  stroke-width: 1.5;
+  opacity: 0.9;
+}
+
+/* Band (confidence ribbon) — non-interactive fill behind lines */
+.rc-band {
+  pointer-events: none;
+}
+
+/* Axis tick labels. Charts add .rc-axis (numeric/value axis) or .rc-axis-cat
+   (category axis, inherits the regular font) to the axis group. font-size is
+   set here to override d3-axis's default font-size="10" attribute on the group. */
+.rc-axis text,
+.rc-axis-cat text {
+  /* Override d3-axis's font-size="10" / font-family="sans-serif" group attrs. */
+  font-size: var(--rc-font-size-sm, 14px);
+}
+
+.rc-axis text {
+  font-family: var(--rc-font-family-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-axis-cat text {
+  font-family: var(--rc-font-family);
+}
+
+/* Numeric SVG text set by charts (bar value labels, donut percents, center
+   totals). Regular-font text inherits the svg default, so only these need the
+   numeric family. Center texts keep their computed size (set in JS). */
+.rc-bar-value,
+.rc-donut-label-pct,
+.rc-donut-center-value,
+.rc-gauge-center-value {
+  font-family: var(--rc-font-family-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-donut-center-value,
+.rc-gauge-center-value {
+  font-weight: bold;
+}
+
+/* Graph (experimental) SVG labels. */
+.rc-graph-node-label { font-size: 11px; }
+
+.rc-graph-sector-label,
+.rc-graph-note,
+.rc-graph-row-label,
+.rc-graph-hidden-note {
+  font-size: 10px;
+}
+
+.rc-graph-sector-label { letter-spacing: 0.08em; text-transform: uppercase; }
+.rc-graph-row-label    { letter-spacing: 0.05em; }
+.rc-graph-note,
+.rc-graph-hidden-note  { text-decoration: underline; }
+
+/* Graph nodes take keyboard focus (K-20); the outline is for the keyboard,
+   a click shows the hover ring. */
+.rc-graph-node:focus { outline: none; }
+.rc-graph-node:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+
+/* Axis titles (used in DualAxes) */
+.rc-axis-title {
+  text-transform: uppercase;
+  dominant-baseline: hanging;
+}
+
+.rc-axis-title-y1 { text-anchor: start; }
+.rc-axis-title-y2 { text-anchor: end; }
+
+/* End labels — last-value labels on the right edge */
+.rc-end-label {
+  font-family: var(--rc-font-family-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hierarchical bar — row label + value text.
+   Fonts come from the theme CSS variables declared on .rc-chart, so the chart
+   code sets only data-driven attributes (fill, position), not font styles. */
+.rc-hbar-label {
+  font-family: var(--rc-font-family);
+  font-size: var(--rc-font-size-sm, 14px);
+}
+
+.rc-hbar-value {
+  font-family: var(--rc-font-family-numeric);
+  font-size: var(--rc-font-size-sm, 14px);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Markers */
+.rc-marker-circle,
+.rc-marker-shape {
+  stroke-width: 1.5;
+}
+
+/* Annotations — vertical (event markers) and horizontal (reference levels) */
+.rc-annotation-line,
+.rc-annotation-range-edge,
+.rc-annotation-h-line,
+.rc-annotation-h-range-edge {
+  stroke-width: 1;
+}
+
+.rc-annotation-label,
+.rc-annotation-h-label {
+  font-size: var(--rc-font-size-sm);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.rc-annotation-h-label {
+  dominant-baseline: text-after-edge;
+}
+
+/* ─── Legend aside (right column layout) ────────────────────────────────── */
+/*
+ * Without explicit grid-row, SVG lands in an auto-sized row (height: 0)
+ * because the DOM order is: header → aside → footer → svg (aside is appended
+ * before _initSVG runs). Explicit rows fix placement regardless of DOM order
+ * — the page's controls included: left to auto-placement they went below
+ * the footer whenever the navigator took its row (K-19).
+ */
+
+.rc-chart--legend-right {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr auto auto auto;  /* header | chart | navigator | controls | footer */
+}
+
+/* Pin each element to its row — overrides DOM insertion order */
+.rc-chart--legend-right > .rc-chart-header { grid-column: 1; grid-row: 1; }
+.rc-chart--legend-right > svg              { grid-column: 1; grid-row: 2; }
+.rc-chart--legend-right > .rc-chart-navigator { grid-column: 1; grid-row: 3; }
+.rc-chart--legend-right > .rc-chart-controls  { grid-column: 1; grid-row: 4; }
+.rc-chart--legend-right > .rc-chart-footer { grid-column: 1; grid-row: 5; }
+
+/* Aside spans the full chart block in column 2 */
+.rc-chart--legend-right > .rc-chart-legend-aside {
+  grid-column: 2;
+  grid-row: 1 / 6;
+  display: flex;
+  align-items: center;
+  padding-left: var(--rc-space-lg);
+}
+
+/* Stack legend items vertically when in aside */
+.rc-chart-legend-aside .rc-legend {
+  flex-direction: column;
+  gap: var(--rc-space-sm);
+  padding: 0;
+}
+
+/* ─── MultiChart ─────────────────────────────────────────────────────────── */
+
+.rc-multichart-grid {
+  display: grid;
+  gap: var(--rc-space-lg);
+  order: 1;   /* between the header and the footer in the flex column */
+}
+
+.rc-multichart-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;    /* prevent grid blowout */
+  overflow: hidden; /* prevent SVG content from bleeding into adjacent cells */
+}
+
+/* The inner div that receives the child Chart instance.
+   Height is set inline by the child chart constructor — do not override with flex.
+   overflow: visible lets X-axis tick labels render beyond the SVG boundary. */
+.rc-multichart-chart-wrapper {
+  min-width: 0;
+}
+
+.rc-multichart-chart-wrapper.rc-chart {
+  overflow: visible;
+}
+
+.rc-multichart-cell-title {
+  font-size: var(--rc-font-size-sm);
+  font-weight: bold;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  margin-bottom: 4px;
+}
+
+/* ─── Range bar ──────────────────────────────────────────────────────────── */
+
+.rc-chart-range-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rc-space-xs);
+  align-items: center;
+}
+
+.rc-range-btn {
+  background: none;
+  /* the chart font, not the UA button font (C-14); the shorthand resets the
+     size, so it comes first */
+  font: inherit;
+  font-size: var(--rc-font-size-sm);
+  /* the shorthand also takes the page's line-height; keep the button's own */
+  line-height: 1.15;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: var(--rc-space-xs);
+  padding: var(--rc-space-sm) var(--rc-space-md);
+  cursor: pointer;
+  transition: background-color 0.1s, border-color 0.1s;
+  color: var(--text-color-light, #666);
+}
+
+.rc-range-btn:hover {
+  color: var(--primary-text-color, #000);
+  border-color: var(--primary-color, #000);
+  /* the button's own background, not a host button:hover one (C-24) */
+  background-color: transparent;
+}
+
+.rc-range-btn.active {
+  color: var(--primary-text-color, #000);
+  background-color: var(--white, #fff);
+  border-color: var(--primary-color, #000);
+}
+
+/* Lin/Log switch — a range button split on the diagonal: the upper-left half
+   filled in --rc-scale-btn-fill, so it reads as a switch rather than one more
+   timeframe. The fill flips to the lower-right half on the log scale. Two
+   classes, so a host button:hover background cannot wipe the fill (C-24). */
+.rc-range-btn.rc-scale-btn {
+  background-image: linear-gradient(135deg, var(--rc-scale-btn-fill) 50%, transparent 50%);
+  /* narrower than a timeframe button, so it fits the 60px above the Y labels */
+  padding-left: var(--rc-space-sm);
+  padding-right: var(--rc-space-sm);
+}
+
+.rc-range-btn.rc-scale-btn[data-scale="log"] {
+  background-image: linear-gradient(135deg, transparent 50%, var(--rc-scale-btn-fill) 50%);
+}
+
+/* One width for both states: the other label sits under this one, unseen and
+   0px tall, so the button is as wide as the wider label ("Log" > "Lin"). */
+.rc-range-btn.rc-scale-btn {
+  text-align: center;
+}
+
+.rc-range-btn.rc-scale-btn::after {
+  content: attr(data-alt);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────────
+   Honour `prefers-reduced-motion: reduce` for CSS transitions inside a chart.
+   Entry/update motion driven by D3 (JS) is gated separately via
+   motionDuration() in core/utils.js. */
+@media (prefers-reduced-motion: reduce) {
+  .rc-chart,
+  .rc-chart * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ─── Screen-reader-only content (data-table fallbacks) ──────────────────── */
+.rc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── Sankey ─────────────────────────────────────────────────────────────── */
+.rc-sankey-label { font-size: 11px; }
+.rc-sankey-node:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* ─── Graph flow view ────────────────────────────────────────────────────── */
+.rc-flow-lane-label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.rc-flow-node-label { font-size: 12px; }
+.rc-flow-node-sub,
+.rc-flow-link-label { font-size: 11px; }
+.rc-flow-hull-label { font-size: 11px; }
+/* Mouse clicks select (the ring shows it); the outline is for keyboard focus */
+.rc-flow-node:focus { outline: none; }
+.rc-flow-node:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+/* A tie focused from the keyboard (K-20): its hit stroke shows, faint */
+.rc-flow-link-hit:focus { outline: none; }
+.rc-flow-link-hit:focus-visible { stroke: currentColor; stroke-opacity: 0.25; }
+.rc-flow-fold-switch:hover circle { stroke-width: 2.2; }
+
+/* ─── MapFlow ────────────────────────────────────────────────────────────── */
+.rc-mapflow-label { font-size: 12px; }
+.rc-mapflow-link-hit:focus { outline: none; }
+.rc-mapflow-link-hit:focus-visible { stroke: currentColor; stroke-opacity: 0.25; }
+
+/* Footer row with tools (Graph zoom): source on the left, controls pinned
+   right, a note (if any) on its own line below. */
+.rc-chart-footer--tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--rc-space-sm);
+}
+.rc-chart-footer--tools > .rc-chart-note { grid-column: 1 / -1; }
+.rc-graph-tools {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: end;
+}
+.rc-graph-zoom-controls { display: flex; gap: 4px; }
+/* font: the chart font, not the UA button font (C-14); Graph sets the size inline */
+.rc-graph-tools button { display: inline-block; margin: 0; width: auto; font: inherit; }
+.rc-graph-tools button[hidden] { display: none; }
+.rc-graph-tools .rc-graph-note,
+.rc-graph-tools .rc-graph-hidden-note {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0 4px;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  text-decoration: underline;
+  opacity: 0.75;
+  cursor: pointer;
+}
+/* Full screen: the card fills the screen (native API or overlay fallback). */
+.rc-graph--fullscreen {
+  position: fixed !important;
+  inset: 0;
+  z-index: 1000;
+  width: 100vw;
+  max-width: none;
+  margin: 0;
+  padding: 16px;
+  box-sizing: border-box;
+  background: var(--bg-color, #fff);
+}
+.rc-graph--fullscreen:fullscreen { position: static !important; }
+
+/* Controls slot (option `controls`): page controls inside the card, between
+   the drawing and the footer. Compact, wrapping, small type. */
+.rc-chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 8px 0 2px;
+  font-size: var(--rc-font-size-sm);
+}
+.rc-chart-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  cursor: pointer;
+}
+.rc-chart-controls input { margin: 0; }
+.rc-chart-controls label.is-disabled,
+.rc-chart-controls label:has(input:disabled) { opacity: 0.45; cursor: default; }
+.rc-chart-controls output { font-variant-numeric: tabular-nums; min-width: 7ch; }
+
+/* ─── Graph details panel (option `details`) ─────────────────────────────── */
+.rc-graph-details {
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+/* Wide card: beside the drawing, aligned with it (top/height set by Graph). */
+.rc-graph--details-side > .rc-graph-details {
+  position: absolute;
+  right: 0;
+  border-left: 1px solid rgba(127, 127, 127, 0.25);
+}
+/* Narrow card: below the drawing; the card grows by the panel's height. */
+.rc-graph--details-below > .rc-graph-details {
+  flex: 0 0 auto;
+  border-top: 1px solid rgba(127, 127, 127, 0.25);
+}
+.rc-graph-details h4 { margin: 2px 0 6px; font-size: 15px; line-height: 1.25; text-transform: none; }
+.rc-graph-details p { margin: 0 0 6px; }
+.rc-graph-details .rc-graph-details-kind {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.rc-graph-details .rc-graph-details-muted { opacity: 0.7; }
+.rc-graph-details dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 10px;
+  margin: 0 0 6px;
+}
+.rc-graph-details dt { opacity: 0.7; font-size: inherit; font-weight: inherit; margin: 0; }
+.rc-graph-details dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.rc-graph-details ul { margin: 0; padding-left: 1.1em; }
+.rc-graph-details li { margin: 0 0 2px; }
+/* A node's ties: the → / ← arrow is the marker, not a bullet as well (C-37) */
+.rc-graph-details .rc-graph-details-ties { list-style: none; padding-left: 0; }
+.rc-graph-details a { color: inherit; text-decoration: underline; }
+
