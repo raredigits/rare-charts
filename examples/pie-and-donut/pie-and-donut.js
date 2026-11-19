@@ -24,11 +24,6 @@
     centerText:  data => '$' + d3.format(',.0f')(d3.sum(data, d => d.value)) + 'K',
     centerLabel: 'Revenue',
     valueFormat: v => '$' + d3.format(',.0f')(v) + 'K',
-    tooltipFormat: ({ label, value, percent, color }) => `
-      <div style="color:${color}">${label}</div>
-      <div>$${d3.format(',.0f')(value)}K</div>
-      <div style="color:#888">${d3.format('.1%')(percent)}</div>
-    `,
   }).setData(segments);
 
   // ── Donut with legend on the right ────────────────────────────────────────
@@ -63,7 +58,7 @@
   // ── Gauge: value vs target ────────────────────────────────────────────────
   // Plan: 80, Achieved: 50 — arc fills to 50/80 = 62.5%
   new Gauge('#chart-gauge-target', {
-    title:       'Budget Execution',
+    title:       'Budget Spent',
     subtitle:    'Achieved vs Plan',
     height:      220,
     max:         80,
@@ -105,7 +100,7 @@
     endAngle:     Math.PI / 2,
     needle:      true,
     max:         240,
-    color:       '#00aaff',
+    color:       '#1677ff',
     centerText:  v => v,
     centerLabel: 'km/h',
   }).setData(87);
